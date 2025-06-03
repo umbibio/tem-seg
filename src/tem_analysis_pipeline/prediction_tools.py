@@ -29,7 +29,7 @@ def select_model_version(
         models_folder = this.parent.parent.parent / "models"
 
     if use_ensemble:
-        model_root  = models_folder / "cross_validation" / model_version
+        model_root = models_folder / "cross_validation" / model_version
     else:
         model_root = models_folder / "single_fold" / model_version
 
@@ -45,20 +45,30 @@ def build_ensemble(models):
     from tensorflow.keras import layers
     from tensorflow.keras import backend
 
-    # rely on sys.path.insert(1, MODEL_ROOT)
     from .model.custom_objects import MyWeightedBinaryCrossEntropy, MyMeanDSC, MyMeanIoU
 
     m = models[0]
-    model_input = getattr(m, "input", False) or getattr(m, "input_layer")
-    inputs = tf.keras.Input(shape=model_input.shape[1:])
+    if hasattr(m, "input"):
+        input_shape = m.input.shape[1:]
+    elif hasattr(m, "input_layer"):
+        input_shape = m.input_layer.shape[1:]
+    else:
+        raise ValueError("Model has no valid input")
+
+    inputs = tf.keras.Input(shape=input_shape)
     for model in models:
-        assert not model.trainable
+        model.trainable = False
 
-    ys = [model(inputs) for model in models]
-    for i, y in enumerate(ys):
-        y._keras_history.layer._name = f"model_fold_{i + 1}"
+    ys = []
+    for i, model in enumerate(models):
+        inp = tf.keras.Input(shape=input_shape)
+        out = model(inp, training=False)
+        wrap = tf.keras.Model(inputs=inp, outputs=out, name=f"model_fold_{i + 1}")
 
-    x = layers.average(ys)
+        y = wrap(inputs)
+        ys.append(y)
+
+    x = layers.Average()(ys)
     outputs = layers.Lambda(backend.round)(x)
 
     ensemble_model = tf.keras.Model(inputs=inputs, outputs=outputs)
@@ -82,7 +92,6 @@ def load_nontrainable_model(p, round_output=False):
     from tensorflow.keras import layers
     from tensorflow.keras import backend
 
-    # rely on sys.path.insert(1, MODEL_ROOT)
     from .model.custom_objects import (
         custom_objects,
         MyWeightedBinaryCrossEntropy,
@@ -115,8 +124,8 @@ def get_list_of_models(organelle, ckpt="last", round_output=False):
     model_root = CONFIG["model_root"]
     return [
         load_nontrainable_model(p, round_output=round_output)
-        for p in glob(
-            os.path.join(model_root, f"{organelle}/kf??/ckpt/{ckpt}.h5")
+        for p in sorted(
+            glob(os.path.join(model_root, f"{organelle}/kf??/ckpt/{ckpt}.h5"))
         )
     ]
 
@@ -125,7 +134,7 @@ def get_organelle_ensemble_model(organelle, ckpt="last"):
     models = get_list_of_models(organelle, ckpt=ckpt, round_output=False)
     if len(models) == 1:
         model = models[0]
-        assert not model.trainable
+        model.trainable = False
         return model
     return build_ensemble(models)
 
