@@ -132,10 +132,6 @@ def get_list_of_models(organelle, ckpt="last", round_output=False):
 
 def get_organelle_ensemble_model(organelle, ckpt="last"):
     models = get_list_of_models(organelle, ckpt=ckpt, round_output=False)
-    if len(models) == 1:
-        model = models[0]
-        model.trainable = False
-        return model
     return build_ensemble(models)
 
 
