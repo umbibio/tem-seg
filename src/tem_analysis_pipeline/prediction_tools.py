@@ -22,7 +22,7 @@ def select_model_version(
     models_folder: str | Path = None,
     use_ensemble: bool = False,
 ):
-    this = Path(__file__).parent
+    this = Path(__file__)
     if models_folder is not None:
         models_folder = Path(models_folder)
     else:
