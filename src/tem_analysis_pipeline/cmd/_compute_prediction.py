@@ -24,7 +24,7 @@ def compute_prediction(
 ) -> None:
     """
     Compute predictions for the given image files using the specified model.
-    
+
     Args:
         filepaths: List of paths to the image files to process
         model_version: Version of the model to use
@@ -34,7 +34,12 @@ def compute_prediction(
         models_folder: Optional folder containing the models
         use_ensemble: Whether to use ensemble model
     """
-    predictions_basedir = Path("prediction").joinpath(model_version, organelle)
+    predictions_basedir = Path("prediction")
+    if use_ensemble:
+        predictions_basedir /= model_version + "_ensemble"
+    else:
+        predictions_basedir /= model_version
+    predictions_basedir /= organelle
 
     prediction_tools.select_model_version(
         model_version,
@@ -62,9 +67,7 @@ def compute_prediction(
                 model = prediction_tools.get_organelle_ensemble_model(organelle)
 
             try:
-                prd = prediction_tools.image_prediction(
-                    img, model, trg_scale=trg_scale
-                )
+                prd = prediction_tools.image_prediction(img, model, trg_scale=trg_scale)
                 prd.save(prd_filepath)
 
             except NoScaleError as e:
@@ -103,15 +106,30 @@ def compute_prediction(
 
 app = typer.Typer(help="Compute predictions for TEM images")
 
+
 @app.command()
 def main(
     filepaths: Annotated[List[Path], Argument(help="Paths to the image files")],
-    model_version: Annotated[str, Option("--model-version", help="Version of the model to use")],
-    organelle: Annotated[str, Option("--organelle", help="Target organelle for prediction")],
-    trg_scale: Annotated[float, Option("--trg-scale", help="Target scale for prediction")],
-    force_prediction: Annotated[bool, Option("--force-prediction", help="Force prediction even if output exists")] = False,
-    models_folder: Annotated[Optional[Path], Option("--models-folder", help="Optional folder containing models")] = None,
-    use_ensemble: Annotated[bool, Option("--use-ensemble", help="Use ensemble model")] = False,
+    model_version: Annotated[
+        str, Option("--model-version", help="Version of the model to use")
+    ] = "Mixture",
+    organelle: Annotated[
+        str, Option("--organelle", help="Target organelle for prediction")
+    ] = "mitochondria",
+    trg_scale: Annotated[
+        float, Option("--trg-scale", help="Target scale for prediction")
+    ] = 0.0075,
+    force_prediction: Annotated[
+        bool,
+        Option("--force-prediction", help="Force prediction even if output exists"),
+    ] = False,
+    models_folder: Annotated[
+        Optional[Path],
+        Option("--models-folder", help="Optional folder containing models"),
+    ] = None,
+    use_ensemble: Annotated[
+        bool, Option("--use-ensemble", help="Use ensemble model")
+    ] = False,
 ) -> None:
     """Command line interface for compute_prediction function."""
     compute_prediction(
