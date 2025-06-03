@@ -1,8 +1,10 @@
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Annotated
 import json
 import os
 
+import typer
+from typer import Option, Argument
 import keras
 import numpy as np
 import tensorflow as tf
@@ -10,7 +12,7 @@ import tensorflow as tf
 from ..model.utils import to_numpy_or_python_type
 
 
-keras.config.dtype_policy("float32")
+keras.config.set_dtype_policy("float32")
 
 
 class PersistentBestModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
@@ -98,12 +100,13 @@ def get_dataset(
     return dataset
 
 
-def main(
-    working_dir: str | Path,
+def train(
+    working_dir: Path,
     organelle: Literal["cell", "mitochondria", "nucleus"] = "mitochondria",
     k_fold: int = 1,
     n_epochs_per_run: int = 1200,
-):
+) -> None:
+    """Train a U-Net model for semantic segmentation of TEM images."""
     from ..model.losses import MyWeightedBinaryCrossEntropy
     from ..model.metrics import (
         MyMeanDSC,
@@ -243,5 +246,28 @@ def main(
         json.dump(result, file)
 
 
+app = typer.Typer(help="Train a U-Net model for semantic segmentation of TEM images")
+
+
+@app.command()
+def main(
+    working_dir: Annotated[
+        Path, Argument(help="Working directory containing the dataset")
+    ],
+    organelle: Annotated[
+        str, Option("--organelle", "-o", help="Target organelle for segmentation")
+    ] = "mitochondria",
+    k_fold: Annotated[
+        int, Option("--k-fold", "-k", help="K-fold cross-validation fold number")
+    ] = 1,
+    n_epochs_per_run: Annotated[
+        int,
+        Option("--n-epochs-per-run", "-e", help="Number of epochs per training run"),
+    ] = 1200,
+) -> None:
+    """Train a U-Net model for semantic segmentation of TEM images."""
+    train(working_dir, organelle, k_fold, n_epochs_per_run)
+
+
 if __name__ == "__main__":
-    main()
+    app()
