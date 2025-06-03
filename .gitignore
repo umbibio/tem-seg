@@ -1,0 +1,30 @@
+# Hidden files
+.*
+
+# Hidden files exceptions
+!.git*
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# model weights
+models
+
+# data
+studies
+
+# image data and predictions
+*.tif
+*.png
+
+# notebooks
+*.ipynb
+!notebooks/*.ipynb
