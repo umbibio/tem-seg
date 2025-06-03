@@ -17,7 +17,11 @@ dependencies = [
     "scipy>=1.15.2",
     "seaborn>=0.13.2",
     "tensorflow[and-cuda]>=2.19.0",
+    "typer>=0.16.0",
 ]
+
+[project.scripts]
+compute-prediction = "tem_analysis_pipeline.cmd._compute_prediction:app"
 
 [build-system]
 requires = ["flit_core>=3.2,<4"]
