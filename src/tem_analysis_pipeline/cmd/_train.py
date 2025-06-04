@@ -140,35 +140,37 @@ def get_dataset(
 
         num_training_elements = training_dataset.reduce(
             tf.constant(0, dtype=tf.int64), lambda x, _: x + 1
-        )
+        ).numpy()
         print(f"Number of training elements: {num_training_elements}")
 
         num_validation_elements = validation_dataset.reduce(
             tf.constant(0, dtype=tf.int64), lambda x, _: x + 1
-        )
+        ).numpy()
         print(f"Number of validation elements: {num_validation_elements}")
 
         training_dataset = training_dataset.map(random_flip_and_rotation, **params)
         training_dataset = training_dataset.map(random_image_adjust, **params)
-
         if shuffle:
-            training_dataset = training_dataset.shuffle(
-                buffer_size=32, reshuffle_each_iteration=True
-            )
+            training_dataset = training_dataset.shuffle(buffer_size=32)
 
         training_dataset = training_dataset.map(_label_crop_fn, **params)
-        validation_dataset = validation_dataset.map(_label_crop_fn, **params)
-
-        validation_dataset = validation_dataset.batch(batch_size)
-        validation_dataset = validation_dataset.prefetch(tf.data.AUTOTUNE)
-
-        training_dataset = training_dataset.batch(batch_size, drop_remainder=True)
+        training_dataset = training_dataset.repeat()
+        training_dataset = training_dataset.batch(batch_size)
         training_dataset = training_dataset.prefetch(tf.data.AUTOTUNE)
 
-        if num_validation_elements == 0:
+        if num_validation_elements > 0:
+            validation_dataset = validation_dataset.map(_label_crop_fn, **params)
+            validation_dataset = validation_dataset.batch(batch_size)
+            validation_dataset = validation_dataset.prefetch(tf.data.AUTOTUNE)
+        else:
             validation_dataset = None
 
-        return training_dataset, validation_dataset
+        return (
+            num_training_elements,
+            training_dataset,
+            num_validation_elements,
+            validation_dataset,
+        )
 
     elif split == "tst":
         dataset = dataset.map(_label_crop_fn, **params)
@@ -221,7 +223,7 @@ def train(
     filters_root = params["filters_root"]
     fraction_of_empty_to_keep = params["fraction_of_empty_to_keep"]
 
-    training_dataset, validation_dataset = get_dataset(
+    n_train, training_dataset, n_val, validation_dataset = get_dataset(
         dataset_name,
         "tra_val",
         organelle,
@@ -234,6 +236,8 @@ def train(
         shuffle=shuffle_training,
         random_state=42,
     )
+    steps_per_epoch = n_train // batch_size
+    validation_steps = n_val // batch_size
 
     model: Model
     if os.path.exists(f"{working_dir}/ckpt/last.keras"):
@@ -271,6 +275,8 @@ def train(
         validation_data=validation_dataset,
         initial_epoch=initial_epoch,
         epochs=total_epochs,
+        steps_per_epoch=steps_per_epoch,
+        validation_steps=validation_steps,
         callbacks=[
             keras.callbacks.CSVLogger(
                 f"{working_dir}/logs/metrics.tsv", separator="\t", append=True
