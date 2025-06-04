@@ -71,18 +71,20 @@ def _is_gzipped(filepath: str | Path) -> bool:
     with open(filepath, "rb") as file:
         return file.read(2) == b"\x1f\x8b"
 
+
 def get_dataset(
     dataset_name: str,
     split: Literal["tra_val", "tst"],
     organelle: Literal["cell", "mitochondria", "nucleus"],
     tile_shape: tuple[int, int],
     window_shape: tuple[int, int],
+    batch_size: int,
     fold_n: int = 1,
     total_folds: int = 1,
     fraction_of_empty_to_keep: float = 1.0,
     shuffle: bool = True,
     random_state: int = 42,
-) -> Dataset | tuple[Dataset, Dataset]:
+) -> Dataset | tuple[Dataset, Dataset | None]:
     from ..model.utils import crop_labels_to_shape
     from ..model.utils import (
         read_tfrecord,
@@ -110,8 +112,9 @@ def get_dataset(
     dataset = files.interleave(_load_tfrecord_dataset, deterministic=True, **params)
     dataset = dataset.map(read_tfrecord, **params)
     dataset = dataset.map(set_tile_shape(tile_shape), **params)
-    dataset = dataset.map(crop_labels_to_shape(window_shape), **params)
     dataset = dataset.cache()
+
+    _label_crop_fn = crop_labels_to_shape(window_shape)
 
     if split == "tra_val":
         if fraction_of_empty_to_keep < 1.0:
@@ -122,17 +125,28 @@ def get_dataset(
         num_elements = dataset.reduce(
             tf.constant(0, dtype=tf.int64), lambda x, _: x + 1
         )
+        print(f"Number of elements: {num_elements}")
         dataset = dataset.shuffle(buffer_size=num_elements, seed=random_state)
         dataset = dataset.enumerate()
 
         def is_validation(index, data):
-            return index % total_folds == fold_n - 1
+            return total_folds > 1 and index % total_folds == fold_n - 1
 
         def is_training(index, data):
-            return index % total_folds != fold_n - 1
+            return total_folds == 1 or index % total_folds != fold_n - 1
 
         training_dataset = dataset.filter(is_training).map(lambda i, d: d)
         validation_dataset = dataset.filter(is_validation).map(lambda i, d: d)
+
+        num_training_elements = training_dataset.reduce(
+            tf.constant(0, dtype=tf.int64), lambda x, _: x + 1
+        )
+        print(f"Number of training elements: {num_training_elements}")
+
+        num_validation_elements = validation_dataset.reduce(
+            tf.constant(0, dtype=tf.int64), lambda x, _: x + 1
+        )
+        print(f"Number of validation elements: {num_validation_elements}")
 
         training_dataset = training_dataset.map(random_flip_and_rotation, **params)
         training_dataset = training_dataset.map(random_image_adjust, **params)
@@ -142,9 +156,23 @@ def get_dataset(
                 buffer_size=32, reshuffle_each_iteration=True
             )
 
+        training_dataset = training_dataset.map(_label_crop_fn, **params)
+        validation_dataset = validation_dataset.map(_label_crop_fn, **params)
+
+        validation_dataset = validation_dataset.batch(batch_size)
+        validation_dataset = validation_dataset.prefetch(tf.data.AUTOTUNE)
+
+        training_dataset = training_dataset.batch(batch_size, drop_remainder=True)
+        training_dataset = training_dataset.prefetch(tf.data.AUTOTUNE)
+
+        if num_validation_elements == 0:
+            validation_dataset = None
+
         return training_dataset, validation_dataset
 
     elif split == "tst":
+        dataset = dataset.map(_label_crop_fn, **params)
+        dataset = dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
         return dataset
 
     else:
@@ -157,6 +185,7 @@ def train(
     fold_n: int = 1,
     total_folds: int = 1,
     shuffle_training: bool = False,
+    batch_size: int | None = None,
     n_epochs_per_run: int = 1200,
 ) -> None:
     """Train a U-Net model for semantic segmentation of TEM images."""
@@ -171,10 +200,11 @@ def train(
     from ..model.config import config
 
     if total_folds > 1:
-        working_dir = Path(f"models/{total_folds}fold_cross_validation")
+        working_dir = Path(f"models/{total_folds}-fold_cross_validation")
     else:
         working_dir = Path("models/single_fold")
-    working_dir = working_dir / dataset_name / organelle / f"kf{fold_n}"
+    working_dir = working_dir / dataset_name / organelle / f"kf{fold_n:02d}"
+    working_dir.mkdir(parents=True, exist_ok=True)
 
     if organelle not in config.keys():
         print(
@@ -187,7 +217,7 @@ def train(
     tile_shape = params["tile_shape"]
     layer_depth = params["layer_depth"]
     window_shape = params["window_shape"]
-    batch_size = params["batch_size"]
+    batch_size = batch_size or params["batch_size"]
     filters_root = params["filters_root"]
     fraction_of_empty_to_keep = params["fraction_of_empty_to_keep"]
 
@@ -197,21 +227,20 @@ def train(
         organelle,
         tile_shape,
         window_shape,
+        batch_size,
         fold_n=fold_n,
         total_folds=total_folds,
         fraction_of_empty_to_keep=fraction_of_empty_to_keep,
         shuffle=shuffle_training,
         random_state=42,
     )
-    validation_dataset = validation_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
-    training_dataset = training_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
 
     model: Model
     if os.path.exists(f"{working_dir}/ckpt/last.keras"):
         with open(f"{working_dir}/logs/metrics.tsv") as file:
             initial_epoch = sum(1 for line in file) - 1
         model = keras.models.load_model(
-            "ckpt/last.keras", custom_objects=custom_objects
+            f"{working_dir}/ckpt/last.keras", custom_objects=custom_objects
         )
     else:
         initial_epoch = 0
@@ -248,18 +277,26 @@ def train(
             ),
             keras.callbacks.TensorBoard(f"{working_dir}/logs", profile_batch=0),
             keras.callbacks.ModelCheckpoint(f"{working_dir}/ckpt/last.keras"),
-            PersistentBestModelCheckpoint(
-                f"{working_dir}/ckpt/best_loss",
-                save_best_only=True,
-                monitor="val_loss",
-                verbose=1,
+            *(
+                [
+                    PersistentBestModelCheckpoint(
+                        f"{working_dir}/ckpt/best_loss",
+                        save_best_only=True,
+                        monitor="val_loss",
+                        verbose=1,
+                    )
+                ]
+                if total_folds > 1
+                else []
             ),
         ],
-        verbose=2,
+        verbose=1,
     )
     final_epoch = initial_epoch + len(history.history["loss"])
 
-    test_dataset = get_dataset(dataset_name, "tst", organelle, tile_shape, window_shape)
+    test_dataset = get_dataset(
+        dataset_name, "tst", organelle, tile_shape, window_shape, batch_size=8
+    )
     thresholds = np.arange(0, 1, 0.005).tolist()
     metrics = [
         keras.metrics.TruePositives(thresholds=thresholds),
@@ -268,9 +305,10 @@ def train(
         keras.metrics.FalseNegatives(thresholds=thresholds),
     ]
     model.compile(metrics=metrics)
-    result = model.evaluate(test_dataset.batch(8), verbose=2)[1:]
-    result = [r.astype(int).tolist() for r in result]
+    result = model.evaluate(test_dataset, verbose=2)[1:]
+    result = [r.numpy().astype(int).tolist() for r in result]
 
     json_path = working_dir / "evaluation" / f"{final_epoch:05d}_evaluation.json"
+    json_path.parent.mkdir(parents=True, exist_ok=True)
     with open(json_path, "w") as file:
         json.dump(result, file)

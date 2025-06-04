@@ -520,4 +520,3 @@ def crop_labels_to_shape(shape: Tuple[int, int, int]):
     def crop(image, label):
         return image, crop_to_shape(label, shape)
     return crop
-

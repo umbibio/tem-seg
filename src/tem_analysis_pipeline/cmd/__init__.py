@@ -12,23 +12,23 @@ app = typer.Typer(
     help="TEM Analysis Pipeline - Tools for training models and computing predictions on TEM images"
 )
 
+
 @app.command("train")
 def train_command(
-    dataset_name: Annotated[
-        str, Argument(help="Name of the dataset to train on")
-    ],
+    dataset_name: Annotated[str, Argument(help="Name of the dataset to train on")],
     organelle: Annotated[
         str, Option("--organelle", "-o", help="Target organelle for segmentation")
     ] = "mitochondria",
-    fold_n: Annotated[
-        int, Option("--fold-n", "-f", help="Fold number")
-    ] = 1,
+    fold_n: Annotated[int, Option("--fold-n", "-f", help="Fold number")] = 1,
     total_folds: Annotated[
-        int, Option("--total-folds", "-t", help="Total number of folds")
+        int, Option("--total-folds", "-k", help="Total number of folds")
     ] = 1,
     shuffle_training: Annotated[
         bool, Option("--shuffle-training", "-s", help="Shuffle training data")
     ] = False,
+    batch_size: Annotated[
+        int | None, Option("--batch-size", "-b", help="Batch size")
+    ] = None,
     n_epochs_per_run: Annotated[
         int,
         Option("--n-epochs-per-run", "-e", help="Number of epochs per training run"),
@@ -37,7 +37,15 @@ def train_command(
     """Train a U-Net model for semantic segmentation of TEM images."""
     from ._train import train
 
-    train(dataset_name, organelle, fold_n, total_folds, shuffle_training, n_epochs_per_run)
+    train(
+        dataset_name,
+        organelle,
+        fold_n,
+        total_folds,
+        shuffle_training,
+        batch_size,
+        n_epochs_per_run,
+    )
 
 
 @app.command("predict")
@@ -81,17 +89,12 @@ def predict_command(
 preprocess_app = typer.Typer(help="Preprocess slides and masks for training")
 app.add_typer(preprocess_app, name="preprocess")
 
+
 @preprocess_app.command("tfrecords")
 def preprocess_tfrecords(
-    dataset_name: Annotated[
-        str, Argument(help="Name of the dataset")
-    ],
-    slides_dirpath: Annotated[
-        Path, Argument(help="Directory containing slide images")
-    ],
-    masks_dirpath: Annotated[
-        Path, Argument(help="Directory containing mask images")
-    ],
+    dataset_name: Annotated[str, Argument(help="Name of the dataset")],
+    slides_dirpath: Annotated[Path, Argument(help="Directory containing slide images")],
+    masks_dirpath: Annotated[Path, Argument(help="Directory containing mask images")],
     organelle: Annotated[
         str, Option("--organelle", "-o", help="Target organelle for preprocessing")
     ],
