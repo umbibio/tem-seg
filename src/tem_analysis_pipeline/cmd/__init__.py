@@ -72,5 +72,42 @@ def predict_command(
     )
 
 
+preprocess_app = typer.Typer(help="Preprocess slides and masks for training")
+app.add_typer(preprocess_app, name="preprocess")
+
+@preprocess_app.command("tfrecords")
+def preprocess_tfrecords(
+    slides_dirpath: Annotated[
+        Path, Argument(help="Directory containing slide images")
+    ],
+    masks_dirpath: Annotated[
+        Path, Argument(help="Directory containing mask images")
+    ],
+    organelle: Annotated[
+        str, Option("--organelle", "-o", help="Target organelle for preprocessing")
+    ],
+    target_scale: Annotated[
+        float, Option("--target-scale", "-s", help="Target scale for preprocessing")
+    ],
+    slide_format: Annotated[
+        str, Option("--slide-format", "-f", help="Format of slide images")
+    ] = "tif",
+    output_dirpath: Annotated[
+        Optional[Path], Option("--output-dirpath", "-d", help="Output directory path")
+    ] = None,
+) -> None:
+    """Preprocess slides and masks into TFRecords format for training."""
+    from ._preprocess import make_tfrecords
+
+    make_tfrecords(
+        slides_dirpath=slides_dirpath,
+        masks_dirpath=masks_dirpath,
+        organelle=organelle,
+        target_scale=target_scale,
+        slide_format=slide_format,
+        output_dirpath=output_dirpath,
+    )
+
+
 if __name__ == "__main__":
     app()

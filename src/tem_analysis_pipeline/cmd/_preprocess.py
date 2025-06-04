@@ -111,6 +111,7 @@ def save_fixed_scale_sample(
     dataset = tf.data.Dataset.from_tensor_slices((sampls, labels))
 
     options = tf.io.TFRecordOptions(compression_type="GZIP")
+    spl_filepath.parent.mkdir(parents=True, exist_ok=True)
     with tf.io.TFRecordWriter(spl_filepath, options=options) as file_writer:
         for record in dataset:
             example = _make_example(record)
@@ -167,10 +168,13 @@ def make_tfrecords(
     masks_dirpath: Path,
     organelle: str,
     target_scale: float,
-    slide_format: str,
-    output_dirpath: Path | None,
+    slide_format: str = "tif",
+    output_dirpath: Path | None = None,
 ) -> None:
     from ..model.config import config
+
+    if output_dirpath is None:
+        output_dirpath = slides_dirpath.parent / f"{slides_dirpath.name}_samples"
 
     i_size = config[organelle]["tile_shape"][0]
     o_size = config[organelle]["window_shape"][0]
@@ -201,33 +205,3 @@ def make_tfrecords(
             i_size=i_size,
             o_size=o_size,
         )
-
-
-def make_tfrecords_cli():
-    import argparse
-
-    class ns(argparse.Namespace):
-        slides_dirpath: Path
-        masks_dirpath: Path
-        organelle: str
-        target_scale: float
-        slide_format: str
-        output_dirpath: Path | None
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--slides-dirpath", type=Path)
-    parser.add_argument("--masks-dirpath", type=Path)
-    parser.add_argument("--organelle", type=str)
-    parser.add_argument("--trg-scale", type=float)
-    parser.add_argument("--slide-format", type=str, default="tif")
-    parser.add_argument("--output-dirpath", type=Path, default=None)
-    args: ns = parser.parse_args(namespace=ns())
-
-    make_tfrecords(
-        slides_dirpath=args.slides_dirpath,
-        masks_dirpath=args.masks_dirpath,
-        organelle=args.organelle,
-        target_scale=args.target_scale,
-        slide_format=args.slide_format,
-        output_dirpath=args.output_dirpath,
-    )
