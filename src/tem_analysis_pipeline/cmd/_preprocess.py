@@ -1,0 +1,233 @@
+from pathlib import Path
+
+import os
+
+
+import PIL.Image
+import PIL.TiffImagePlugin
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+import tensorflow as tf
+import numpy as np
+
+from ..calibration import get_calibration, NoScaleError
+
+
+def load_image(img_filepath: str | Path) -> PIL.Image.Image:
+    img_filepath = Path(img_filepath)
+
+    img = PIL.Image.open(img_filepath)
+    if img.mode != "L":
+        x = np.array(img)
+        x = ((x / np.iinfo(x.dtype).max) * 255).round().astype(np.uint8)
+        img = PIL.Image.fromarray(x)
+
+    return img
+
+
+def load_mask(msk_filepath: str | Path) -> PIL.Image.Image:
+    msk_filepath = Path(msk_filepath)
+
+    msk = PIL.Image.open(msk_filepath)
+    assert msk.mode == "L", f"Mask must have a single channel, got mode {msk.mode}"
+
+    return msk
+
+
+def save_fixed_scale_sample(
+    img_filepath: str | Path,
+    msk_filepath: str | Path,
+    organelle: str,
+    target_scale: float,
+    output_dirpath: str | Path,
+    i_size: int,
+    o_size: int,
+) -> None:
+    assert target_scale > 0.0
+
+    stride = o_size // 2
+
+    img_filepath = Path(img_filepath)
+    msk_filepath = Path(msk_filepath)
+    spl_filepath = (
+        output_dirpath / organelle / "tfrecords" / f"{img_filepath.stem}.tfrecord"
+    )
+
+    # load image
+    img = load_image(img_filepath)
+
+    # load mask
+    msk = load_mask(msk_filepath)
+
+    assert img.size == msk.size, "Image and mask must have the same size"
+
+    try:
+        img_scale = get_calibration(img)
+    except NoScaleError:
+        print(f"No scale found for {img_filepath}. Skipping.")
+        return
+
+    scale_ratio = target_scale / img_scale
+    img_width, img_height = img.size
+
+    trg_width = int(np.round(img_width / scale_ratio))
+    trg_height = int(np.round(img_height / scale_ratio))
+    trg_size = (trg_width, trg_height)
+
+    img = img.resize(trg_size, resample=PIL.Image.Resampling.LANCZOS)
+    img = img.crop(
+        (
+            -i_size // 2,
+            -i_size // 2,
+            trg_width + i_size // 2,
+            trg_height + i_size // 2,
+        )
+    )
+    img_arr = np.array(img)
+
+    msk = msk.resize(trg_size, resample=PIL.Image.Resampling.NEAREST)
+    msk = msk.crop(
+        (
+            -i_size // 2,
+            -i_size // 2,
+            trg_width + i_size // 2,
+            trg_height + i_size // 2,
+        )
+    )
+    msk_arr = np.array(msk)
+
+    img_arr_swv = np.lib.stride_tricks.sliding_window_view(img_arr, (i_size, i_size))[
+        ::stride, ::stride
+    ]
+    msk_arr_swv = np.lib.stride_tricks.sliding_window_view(msk_arr, (i_size, i_size))[
+        ::stride, ::stride
+    ]
+
+    sampls = img_arr_swv.reshape((-1, i_size, i_size))
+    labels = msk_arr_swv.reshape((-1, i_size, i_size))
+
+    sampls = (sampls / 255).astype(np.float32)
+    labels = (labels / 255).astype(np.float32)
+    dataset = tf.data.Dataset.from_tensor_slices((sampls, labels))
+
+    options = tf.io.TFRecordOptions(compression_type="GZIP")
+    with tf.io.TFRecordWriter(spl_filepath, options=options) as file_writer:
+        for record in dataset:
+            example = _make_example(record)
+            record_bytes = example.SerializeToString()
+            file_writer.write(record_bytes)
+
+
+def _make_bytes_feature(tile):
+    tile = tf.expand_dims(tile, 2)
+    tile_serialized = tf.io.serialize_tensor(tile)
+    return tf.train.Feature(
+        bytes_list=tf.train.BytesList(value=[tile_serialized.numpy()])
+    )
+
+
+def _make_example(record: tuple[tf.Tensor, tf.Tensor]) -> tf.train.Example:
+    img_tile, msk_tile = record
+    img_tile_feature_of_bytes = _make_bytes_feature(img_tile)
+    msk_tile_feature_of_bytes = _make_bytes_feature(msk_tile)
+
+    features_for_example = {
+        "img_tile": img_tile_feature_of_bytes,
+        "msk_tile": msk_tile_feature_of_bytes,
+    }
+
+    return tf.train.Example(features=tf.train.Features(feature=features_for_example))
+
+
+def cast(v):
+    # https://github.com/python-pillow/Pillow/issues/6199#issuecomment-1214854558
+    if isinstance(v, PIL.TiffImagePlugin.IFDRational):
+        return float(v)
+    elif isinstance(v, tuple):
+        return tuple(cast(t) for t in v)
+    elif isinstance(v, bytes):
+        return v.decode(errors="replace")
+    elif isinstance(v, dict):
+        for kk, vv in v.items():
+            v[kk] = cast(vv)
+        return v
+    else:
+        return v
+
+
+def cast_dict(d):
+    # https://github.com/python-pillow/Pillow/issues/6199#issuecomment-1214854558
+    for k, v in d.items():
+        d[k] = cast(v)
+    return d
+
+
+def make_tfrecords(
+    slides_dirpath: Path,
+    masks_dirpath: Path,
+    organelle: str,
+    target_scale: float,
+    slide_format: str,
+    output_dirpath: Path | None,
+) -> None:
+    from ..model.config import config
+
+    i_size = config[organelle]["tile_shape"][0]
+    o_size = config[organelle]["window_shape"][0]
+
+    print("\ngenerating fixed scale samples")
+
+    slides = slides_dirpath.glob(f"*.{slide_format}")
+
+    valid_pairs: list[tuple[Path, Path]] = []
+    for slide in sorted(slides):
+        slide_name = slide.stem
+        mask = masks_dirpath / f"{slide_name}.png"
+        if not mask.exists():
+            print(f"Didn't find mask for {slide_name}. Skipping.", flush=True)
+            continue
+
+        valid_pairs.append((slide, mask))
+
+    i = 0
+    for slide, mask in valid_pairs:
+        print(f"{i: 4d}", slide.name, organelle, flush=True)
+        save_fixed_scale_sample(
+            slide,
+            mask,
+            organelle=organelle,
+            target_scale=target_scale,
+            output_dirpath=output_dirpath,
+            i_size=i_size,
+            o_size=o_size,
+        )
+
+
+def make_tfrecords_cli():
+    import argparse
+
+    class ns(argparse.Namespace):
+        slides_dirpath: Path
+        masks_dirpath: Path
+        organelle: str
+        target_scale: float
+        slide_format: str
+        output_dirpath: Path | None
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--slides-dirpath", type=Path)
+    parser.add_argument("--masks-dirpath", type=Path)
+    parser.add_argument("--organelle", type=str)
+    parser.add_argument("--trg-scale", type=float)
+    parser.add_argument("--slide-format", type=str, default="tif")
+    parser.add_argument("--output-dirpath", type=Path, default=None)
+    args: ns = parser.parse_args(namespace=ns())
+
+    make_tfrecords(
+        slides_dirpath=args.slides_dirpath,
+        masks_dirpath=args.masks_dirpath,
+        organelle=args.organelle,
+        target_scale=args.target_scale,
+        slide_format=args.slide_format,
+        output_dirpath=args.output_dirpath,
+    )
