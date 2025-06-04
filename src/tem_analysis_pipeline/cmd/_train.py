@@ -1,10 +1,8 @@
 from pathlib import Path
-from typing import Literal, Annotated
+from typing import Literal
 import json
 import os
 
-import typer
-from typer import Option, Argument
 import keras
 import numpy as np
 import tensorflow as tf
@@ -244,30 +242,3 @@ def train(
     )
     with open(json_path, "w") as file:
         json.dump(result, file)
-
-
-app = typer.Typer(help="Train a U-Net model for semantic segmentation of TEM images")
-
-
-@app.command()
-def main(
-    working_dir: Annotated[
-        Path, Argument(help="Working directory containing the dataset")
-    ],
-    organelle: Annotated[
-        str, Option("--organelle", "-o", help="Target organelle for segmentation")
-    ] = "mitochondria",
-    k_fold: Annotated[
-        int, Option("--k-fold", "-k", help="K-fold cross-validation fold number")
-    ] = 1,
-    n_epochs_per_run: Annotated[
-        int,
-        Option("--n-epochs-per-run", "-e", help="Number of epochs per training run"),
-    ] = 1200,
-) -> None:
-    """Train a U-Net model for semantic segmentation of TEM images."""
-    train(working_dir, organelle, k_fold, n_epochs_per_run)
-
-
-if __name__ == "__main__":
-    app()
