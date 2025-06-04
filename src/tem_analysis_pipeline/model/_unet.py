@@ -37,14 +37,14 @@ def get_conv_block(x: Tensor, filters: int, dropout_rate: float, stage: str) -> 
     kernel_size = 3
 
     x = Conv2D(filters, kernel_size, name=f"{stage}_conv1")(x)
-    x = LeakyReLU(alpha=0.2)(x)
+    x = LeakyReLU(negative_slope=0.2)(x)
 
     if dropout_rate > 0.0:
         x = SpatialDropout2D(dropout_rate, name=f"{stage}_drop1")(x)
     x = BatchNormalization(name=f"{stage}_bnor1")(x)
 
     x = Conv2D(filters, kernel_size, name=f"{stage}_conv2")(x)
-    x = LeakyReLU(alpha=0.2)(x)
+    x = LeakyReLU(negative_slope=0.2)(x)
 
     if dropout_rate > 0.0:
         x = SpatialDropout2D(dropout_rate, name=f"{stage}_drop2")(x)
@@ -55,7 +55,7 @@ def get_conv_block(x: Tensor, filters: int, dropout_rate: float, stage: str) -> 
 
 def get_upconv(x: Tensor, copy: Tensor, filters: int, stage: str) -> Tensor:
     x = Conv2DTranspose(filters, (2, 2), 2, name=f"{stage}_upsmp")(x)
-    x = LeakyReLU(alpha=0.2)(x)
+    x = LeakyReLU(negative_slope=0.2)(x)
 
     ver_pad = (copy.shape[1] - x.shape[1]) // 2
     hor_pad = (copy.shape[2] - x.shape[2]) // 2

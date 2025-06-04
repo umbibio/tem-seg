@@ -1,19 +1,28 @@
+from typing import TYPE_CHECKING
 from pathlib import Path
 from typing import Literal
 import json
 import os
 
-import keras
 import numpy as np
 import tensorflow as tf
 
 from ..model.utils import to_numpy_or_python_type
 
+if TYPE_CHECKING:
+    from keras import Model
+    from keras.src.callbacks import ModelCheckpoint
+    import keras
+else:
+    from tensorflow.keras import Model
+    from tensorflow.keras.callbacks import ModelCheckpoint
+    import tensorflow.keras as keras
+
 
 keras.config.set_dtype_policy("float32")
 
 
-class PersistentBestModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
+class PersistentBestModelCheckpoint(ModelCheckpoint):
     def __init__(self, filepath, **kwargs):
         if "save_best_only" in kwargs.keys() and not kwargs.get("save_best_only"):
             print(
@@ -151,10 +160,11 @@ def train(
         fraction_of_empty_to_keep=fraction_of_empty_to_keep,
     )
 
+    model: Model
     if os.path.exists(f"{fold_dir}/ckpt/last/saved_model.pb"):
         with open(f"{fold_dir}/logs/metrics.tsv") as file:
             initial_epoch = sum(1 for line in file) - 1
-        model = tf.keras.models.load_model("ckpt/last", custom_objects=custom_objects)
+        model = keras.models.load_model("ckpt/last", custom_objects=custom_objects)
     else:
         initial_epoch = 0
         # building the model
@@ -193,11 +203,11 @@ def train(
         initial_epoch=initial_epoch,
         epochs=total_epochs,
         callbacks=[
-            tf.keras.callbacks.CSVLogger(
+            keras.callbacks.CSVLogger(
                 f"{fold_dir}/logs/metrics.tsv", separator="\t", append=True
             ),
-            tf.keras.callbacks.TensorBoard(f"{fold_dir}/logs", profile_batch=0),
-            tf.keras.callbacks.ModelCheckpoint(f"{fold_dir}/ckpt/last"),
+            keras.callbacks.TensorBoard(f"{fold_dir}/logs", profile_batch=0),
+            keras.callbacks.ModelCheckpoint(f"{fold_dir}/ckpt/last"),
             PersistentBestModelCheckpoint(
                 f"{fold_dir}/ckpt/best_loss",
                 save_best_only=True,
@@ -228,10 +238,10 @@ def train(
     test_dataset = get_dataset(tile_shape, window_shape, fold_dir, split="tst")
     thresholds = np.arange(0, 1, 0.005).tolist()
     metrics = [
-        tf.keras.metrics.TruePositives(thresholds=thresholds),
-        tf.keras.metrics.FalsePositives(thresholds=thresholds),
-        tf.keras.metrics.TrueNegatives(thresholds=thresholds),
-        tf.keras.metrics.FalseNegatives(thresholds=thresholds),
+        keras.metrics.TruePositives(thresholds=thresholds),
+        keras.metrics.FalsePositives(thresholds=thresholds),
+        keras.metrics.TrueNegatives(thresholds=thresholds),
+        keras.metrics.FalseNegatives(thresholds=thresholds),
     ]
     model.compile(metrics=metrics)
     result = model.evaluate(test_dataset.batch(8), verbose=2)[1:]
