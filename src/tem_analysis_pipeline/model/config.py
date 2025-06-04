@@ -21,6 +21,7 @@ config = {
     },
     'nucleus': {**common_config,
         "fraction_of_empty_to_keep": 1.0,
+        "target_scale": 0.03,
     },
 }
 

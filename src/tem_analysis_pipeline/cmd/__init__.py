@@ -77,6 +77,9 @@ app.add_typer(preprocess_app, name="preprocess")
 
 @preprocess_app.command("tfrecords")
 def preprocess_tfrecords(
+    dataset_name: Annotated[
+        str, Argument(help="Name of the dataset")
+    ],
     slides_dirpath: Annotated[
         Path, Argument(help="Directory containing slide images")
     ],
@@ -86,22 +89,27 @@ def preprocess_tfrecords(
     organelle: Annotated[
         str, Option("--organelle", "-o", help="Target organelle for preprocessing")
     ],
-    output_dirpath: Annotated[
-        Path, Option("--output-dirpath", "-d", help="Output directory path")
-    ],
+    test_size: Annotated[
+        float, Option("--test-size", "-t", help="Fraction of data to use for testing")
+    ] = 0.1,
     slide_format: Annotated[
         str, Option("--slide-format", "-f", help="Format of slide images")
     ] = "tif",
+    random_state: Annotated[
+        int, Option("--random-state", "-r", help="Random state for splitting data")
+    ] = 42,
 ) -> None:
     """Preprocess slides and masks into TFRecords format for training."""
     from ._preprocess import make_tfrecords
 
     make_tfrecords(
+        dataset_name=dataset_name,
         slides_dirpath=slides_dirpath,
         masks_dirpath=masks_dirpath,
         organelle=organelle,
         slide_format=slide_format,
-        output_dirpath=output_dirpath,
+        test_size=test_size,
+        random_state=random_state,
     )
 
 

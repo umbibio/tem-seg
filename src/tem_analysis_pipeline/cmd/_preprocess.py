@@ -9,6 +9,7 @@ import PIL.TiffImagePlugin
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 import tensorflow as tf
 import numpy as np
+from sklearn.model_selection import train_test_split
 
 from ..calibration import get_calibration, NoScaleError
 
@@ -170,16 +171,17 @@ def cast_dict(d):
 
 
 def make_tfrecords(
+    dataset_name: str,
     slides_dirpath: Path,
     masks_dirpath: Path,
     organelle: str,
     slide_format: str = "tif",
-    output_dirpath: Path | None = None,
+    test_size: float | int = 0.1,
+    random_state: int = 42,
 ) -> None:
     from ..model.config import config
 
-    if output_dirpath is None:
-        output_dirpath = slides_dirpath.parent / f"{slides_dirpath.name}_samples"
+    output_dirpath = Path("data") / dataset_name
 
     i_size = config[organelle]["tile_shape"][0]
     o_size = config[organelle]["window_shape"][0]
@@ -199,15 +201,32 @@ def make_tfrecords(
 
         valid_pairs.append((slide, mask))
 
+    train_pairs: list[tuple[Path, Path]]
+    test_pairs: list[tuple[Path, Path]]
+    train_pairs, test_pairs = train_test_split(valid_pairs, test_size=test_size, random_state=random_state)
+
     i = 0
-    for slide, mask in valid_pairs:
+    for slide, mask in train_pairs:
         print(f"{i: 4d}", slide.name, organelle, flush=True)
         save_fixed_scale_sample(
             slide,
             mask,
             organelle=organelle,
             target_scale=target_scale,
-            output_dirpath=output_dirpath,
+            output_dirpath=output_dirpath / "tra_val",
+            i_size=i_size,
+            o_size=o_size,
+        )
+
+    i = 0
+    for slide, mask in test_pairs:
+        print(f"{i: 4d}", slide.name, organelle, flush=True)
+        save_fixed_scale_sample(
+            slide,
+            mask,
+            organelle=organelle,
+            target_scale=target_scale,
+            output_dirpath=output_dirpath / "tst",
             i_size=i_size,
             o_size=o_size,
         )
