@@ -6,7 +6,7 @@ This repository contains a pipeline for the analysis of mitochondria morphology 
 
 ## Status
 
-**Note:** Previous codebase was developed for an old version of TensorFlow (2.9) and has been updated to be compatible with TensorFlow 2.19. The training functionality is still being tested and may not work as expected.
+**Note:** Previous codebase was developed for an old version of TensorFlow (2.9) and has been updated to be compatible with TensorFlow 2.19. The training functionality now includes k-fold cross-validation and improved model checkpointing, but is still being tested and may not work as expected.
 
 ## Installation
 
@@ -36,36 +36,52 @@ The package provides a command-line interface with three main commands: `preproc
 Before training, you need to preprocess your TEM images and masks into TFRecord format:
 
 ```bash
-tem-seg-model preprocess tfrecords \
+tem-seg preprocess tfrecords \
+    dataset_name \
     /path/to/slides \
     /path/to/masks \
     --organelle mitochondria \
-    --output-dirpath /path/to/output \
-    --slide-format tif
+    --slide-format tif \
+    --test-size 0.1 \
+    --random-state 42
 ```
+
+This command will:
+1. Split your data into training/validation and test sets
+2. Convert images and masks to TFRecord format
+3. Save the TFRecords in the `data/dataset_name` directory
 
 ### Training a Model
 
 To train a U-Net model for semantic segmentation:
 
 ```bash
-tem-seg-model train \
-    /path/to/working/directory \
+tem-seg train \
+    dataset_name \
     --organelle mitochondria \
-    --k-fold 1 \
+    --fold-n 1 \
+    --total-folds 5 \
+    --shuffle-training \
+    --batch-size 16 \
     --n-epochs-per-run 1200
 ```
+
+The training process includes:
+- K-fold cross-validation (when total-folds > 1)
+- Automatic model checkpointing for best validation performance
+- Evaluation metrics including F1 and F2 scores
+- JSON logging of training history and evaluation results
 
 ### Making Predictions
 
 To generate predictions using a trained model:
 
 ```bash
-tem-seg-model predict \
+tem-seg predict \
     /path/to/images/*.tif \
     --model-version Mixture \
     --organelle mitochondria \
-    --trg-scale 0.0075 \
+    --target-scale 0.0075 \
     --use-ensemble
 ```
 
@@ -74,17 +90,17 @@ tem-seg-model predict \
 ```
 src/tem_analysis_pipeline/
 ├── cmd/                    # Command-line interface modules
-│   ├── __init__.py         # Main CLI entry point
+│   ├── __init__.py         # Main CLI entry point with Typer commands
 │   ├── _compute_prediction.py  # Prediction functionality
-│   ├── _preprocess.py      # Data preprocessing
-│   └── _train.py           # Model training
+│   ├── _preprocess.py      # Data preprocessing with train/test splitting
+│   └── _train.py           # Model training with k-fold cross-validation
 ├── model/                  # Model architecture and utilities
 │   ├── __init__.py
 │   ├── _unet.py            # U-Net model implementation
 │   ├── config.py           # Configuration parameters
 │   ├── custom_objects.py   # Custom Keras objects
 │   ├── losses.py           # Loss functions
-│   ├── metrics.py          # Evaluation metrics
+│   ├── metrics.py          # Evaluation metrics with F1 and F2 scores
 │   └── utils.py            # Utility functions
 ├── calibration.py          # Image calibration utilities
 └── prediction_tools.py     # Prediction utilities
@@ -97,10 +113,86 @@ src/tem_analysis_pipeline/
 - TEM images should be in TIFF format (or other formats supported by PIL)
 - Masks should be single-channel images (mode 'L' or 'P' in PIL)
 - Images should be properly calibrated with scale information displayed on the image. This should work for the images used in this study, but may not work for other images if the scale format is different.
+- Images and masks should have matching filenames for proper pairing during preprocessing.
 
 ### Dataset Organization
 
-TODO
+The pipeline expects the following dataset organization:
+
+1. **Initial Data Structure**:
+   ```
+   /path/to/slides/  # Directory containing TEM images
+   └── image1.tif
+   └── image2.tif
+   └── ...
+   
+   /path/to/masks/   # Directory containing mask images
+   └── image1.png
+   └── image2.png
+   └── ...
+   ```
+
+2. **After Preprocessing**:
+   ```
+   data/
+   └── dataset_name/
+       ├── tra_val/organelle/tfrecords/
+       │   └── *.tfrecord
+       └── tst/organelle/tfrecords/
+           └── *.tfrecord
+   ```
+
+3. **After Training**:
+   
+   For single-fold training:
+   ```
+   models/
+   └── single_fold/dataset_name/
+       └── mitochondria
+           └── kf01
+               ├── ckpt
+               │   └── last.keras
+               ├── evaluation
+               │   ├── nnnnn_evaluation.json
+               │   └── ...
+               └── logs
+                   ├── metrics.tsv
+                   └── train
+                       ├── events.out.tfevents.*.v2
+   ```
+
+   For k-fold cross-validation:
+   ```
+   models/
+   └── 5-fold_cross_validation/dataset_name/
+       └── mitochondria
+           ├── kf01
+           │   ├── ckpt
+           │   │   ├── best_loss
+           │   │   │   └── best_logs.json
+           │   │   ├── best_loss.keras
+           │   │   └── last.keras
+           │   ├── evaluation
+           │   │   ├── nnnnn_evaluation.json
+           │   │   └── ...
+           │   └── logs
+           │       ├── metrics.tsv
+           │       ├── train
+           │       │   └── events.out.tfevents.*.v2
+           │       └── validation
+           │           └── events.out.tfevents.*.v2
+           ├── kf02
+           │   ├── ckpt
+           │   │   ├── best_loss
+           │   │   │   └── best_logs.json
+           │   │   ├── best_loss.keras
+           │   │   └── last.keras
+           │   └── ...
+           └── kf03
+               └── ...
+   ```
+
+Each fold directory contains checkpoints, evaluation results, and TensorBoard logs for training and validation.
 
 ## Configuration
 
@@ -112,6 +204,17 @@ Model and training parameters are configured in `src/tem_analysis_pipeline/model
 - `fraction_of_empty_to_keep`: Fraction of empty masks to keep during training
 
 These parameters can be customized for different organelles (cell, mitochondria, nucleus).
+
+### Training Configuration
+
+The training process can be customized with the following parameters:
+
+- `dataset_name`: Name of the dataset to train on (corresponds to directory in `data/`)
+- `fold_n`: Current fold number for cross-validation
+- `total_folds`: Total number of folds for cross-validation
+- `shuffle_training`: Whether to shuffle the training data
+- `batch_size`: Batch size for training
+- `n_epochs_per_run`: Number of epochs per training run
 
 ## License
 
