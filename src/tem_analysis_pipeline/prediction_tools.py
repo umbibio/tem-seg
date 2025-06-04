@@ -21,23 +21,24 @@ def select_model_version(
     *,
     models_folder: str | Path = None,
     use_ensemble: bool = False,
+    cross_validation_kfolds: int | None = None,
 ):
-    this = Path(__file__)
     if models_folder is not None:
         models_folder = Path(models_folder)
     else:
-        models_folder = this.parent.parent.parent / "models"
+        models_folder = Path("models")
 
     if use_ensemble:
-        model_root = models_folder / "cross_validation" / model_version
+        assert cross_validation_kfolds is not None
+        k = cross_validation_kfolds
+        model_root = models_folder / f"{k}-fold_cross_validation" / model_version
     else:
         model_root = models_folder / "single_fold" / model_version
 
     assert model_root.exists(), model_root
     assert model_root.is_dir(), model_root
 
-    CONFIG["model_root"] = model_root.as_posix()
-    sys.path.insert(1, model_root.as_posix())
+    CONFIG["model_root"] = model_root
 
 
 def build_ensemble(models):
@@ -121,12 +122,14 @@ def load_nontrainable_model(p, round_output=False):
 
 
 def get_list_of_models(organelle, ckpt="last", round_output=False):
-    model_root = CONFIG["model_root"]
+    model_root: Path = CONFIG["model_root"]
+
+    filepaths = sorted(model_root.glob(f"{organelle}/kf??/ckpt/{ckpt}.keras"))
+    if not filepaths:
+        filepaths = sorted(model_root.glob(f"{organelle}/kf??/ckpt/{ckpt}.h5"))
     return [
         load_nontrainable_model(p, round_output=round_output)
-        for p in sorted(
-            glob(os.path.join(model_root, f"{organelle}/kf??/ckpt/{ckpt}.h5"))
-        )
+        for p in filepaths
     ]
 
 

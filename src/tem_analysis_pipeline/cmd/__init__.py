@@ -52,25 +52,28 @@ def train_command(
 def predict_command(
     filepaths: Annotated[List[Path], Argument(help="Paths to the image files")],
     model_version: Annotated[
-        str, Option("--model-version", help="Version of the model to use")
+        str, Option("--model-version", "-v", help="Version of the model to use")
     ] = "Mixture",
     organelle: Annotated[
-        str, Option("--organelle", help="Target organelle for prediction")
+        str, Option("--organelle", "-o", help="Target organelle for prediction")
     ] = "mitochondria",
-    trg_scale: Annotated[
-        float, Option("--trg-scale", help="Target scale for prediction")
-    ] = 0.0075,
     force_prediction: Annotated[
         bool,
-        Option("--force-prediction", help="Force prediction even if output exists"),
+        Option("--force-prediction", "-f", help="Force prediction even if output exists"),
     ] = False,
     models_folder: Annotated[
-        Optional[Path],
-        Option("--models-folder", help="Optional folder containing models"),
+        Path | None,
+        Option("--models-folder", "-m", help="Optional folder containing models"),
     ] = None,
     use_ensemble: Annotated[
-        bool, Option("--use-ensemble", help="Use ensemble model")
+        bool, Option("--use-ensemble", "-e", help="Use ensemble model")
     ] = False,
+    checkpoint: Annotated[
+        str, Option("--checkpoint", "-c", help="Checkpoint to use")
+    ] = "last",
+    cross_validation_kfolds: Annotated[
+        int | None, Option("--cross-validation-kfolds", "-k", help="Cross-validation k-folds")
+    ] = None,
 ) -> None:
     """Compute predictions for the given image files using the specified model."""
     from ._compute_prediction import compute_prediction
@@ -79,10 +82,11 @@ def predict_command(
         filepaths=filepaths,
         model_version=model_version,
         organelle=organelle,
-        trg_scale=trg_scale,
         force_prediction=force_prediction,
         models_folder=models_folder,
         use_ensemble=use_ensemble,
+        checkpoint=checkpoint,
+        cross_validation_kfolds=cross_validation_kfolds,
     )
 
 

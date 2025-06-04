@@ -1,9 +1,6 @@
 from pathlib import Path
 import re
-from typing import List, Optional, Union, Annotated
-
-import typer
-from typer import Option, Argument
+from typing import Literal
 
 from tem_analysis_pipeline import prediction_tools
 from tem_analysis_pipeline.calibration import (
@@ -14,13 +11,14 @@ from tem_analysis_pipeline.calibration import (
 
 
 def compute_prediction(
-    filepaths: List[Path],
+    filepaths: list[Path],
     model_version: str,
     organelle: str,
-    trg_scale: float,
     force_prediction: bool = False,
-    models_folder: Optional[Union[str, Path]] = None,
+    models_folder: str | Path | None = None,
     use_ensemble: bool = False,
+    checkpoint: Literal["last", "best_loss"] = "last",
+    cross_validation_kfolds: int | None = None,
 ) -> None:
     """
     Compute predictions for the given image files using the specified model.
@@ -29,11 +27,14 @@ def compute_prediction(
         filepaths: List of paths to the image files to process
         model_version: Version of the model to use
         organelle: Target organelle for the prediction
-        trg_scale: Target scale for the prediction
         force_prediction: Whether to force prediction even if output file exists
         models_folder: Optional folder containing the models
         use_ensemble: Whether to use ensemble model
     """
+    from ..model.config import config
+
+    trg_scale = config[organelle]["target_scale"]
+
     predictions_basedir = Path("prediction")
     if use_ensemble:
         predictions_basedir /= model_version + "_ensemble"
@@ -45,6 +46,7 @@ def compute_prediction(
         model_version,
         models_folder=models_folder,
         use_ensemble=use_ensemble,
+        cross_validation_kfolds=cross_validation_kfolds,
     )
     model = None
 
@@ -64,7 +66,7 @@ def compute_prediction(
             prd_filepath.parent.mkdir(parents=True, exist_ok=True)
 
             if model is None:
-                model = prediction_tools.get_organelle_ensemble_model(organelle)
+                model = prediction_tools.get_organelle_ensemble_model(organelle, ckpt=checkpoint)
 
             try:
                 prd = prediction_tools.image_prediction(img, model, trg_scale=trg_scale)
@@ -102,46 +104,3 @@ def compute_prediction(
                 continue
 
         print(prd_filepath, flush=True)
-
-
-app = typer.Typer(help="Compute predictions for TEM images")
-
-
-@app.command()
-def main(
-    filepaths: Annotated[List[Path], Argument(help="Paths to the image files")],
-    model_version: Annotated[
-        str, Option("--model-version", help="Version of the model to use")
-    ] = "Mixture",
-    organelle: Annotated[
-        str, Option("--organelle", help="Target organelle for prediction")
-    ] = "mitochondria",
-    trg_scale: Annotated[
-        float, Option("--trg-scale", help="Target scale for prediction")
-    ] = 0.0075,
-    force_prediction: Annotated[
-        bool,
-        Option("--force-prediction", help="Force prediction even if output exists"),
-    ] = False,
-    models_folder: Annotated[
-        Optional[Path],
-        Option("--models-folder", help="Optional folder containing models"),
-    ] = None,
-    use_ensemble: Annotated[
-        bool, Option("--use-ensemble", help="Use ensemble model")
-    ] = False,
-) -> None:
-    """Command line interface for compute_prediction function."""
-    compute_prediction(
-        filepaths=filepaths,
-        model_version=model_version,
-        organelle=organelle,
-        trg_scale=trg_scale,
-        force_prediction=force_prediction,
-        models_folder=models_folder,
-        use_ensemble=use_ensemble,
-    )
-
-
-if __name__ == "__main__":
-    app()
