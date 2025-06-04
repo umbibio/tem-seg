@@ -81,8 +81,9 @@ tem-seg predict \
     /path/to/images/*.tif \
     --model-version Mixture \
     --organelle mitochondria \
-    --target-scale 0.0075 \
-    --use-ensemble
+    --use-ensemble \
+    --cross-validation-kfolds 5 \
+    --checkpoint last
 ```
 
 ## Project Structure
