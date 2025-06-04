@@ -86,15 +86,12 @@ def preprocess_tfrecords(
     organelle: Annotated[
         str, Option("--organelle", "-o", help="Target organelle for preprocessing")
     ],
-    target_scale: Annotated[
-        float, Option("--target-scale", "-s", help="Target scale for preprocessing")
+    output_dirpath: Annotated[
+        Path, Option("--output-dirpath", "-d", help="Output directory path")
     ],
     slide_format: Annotated[
         str, Option("--slide-format", "-f", help="Format of slide images")
     ] = "tif",
-    output_dirpath: Annotated[
-        Optional[Path], Option("--output-dirpath", "-d", help="Output directory path")
-    ] = None,
 ) -> None:
     """Preprocess slides and masks into TFRecords format for training."""
     from ._preprocess import make_tfrecords
@@ -103,7 +100,6 @@ def preprocess_tfrecords(
         slides_dirpath=slides_dirpath,
         masks_dirpath=masks_dirpath,
         organelle=organelle,
-        target_scale=target_scale,
         slide_format=slide_format,
         output_dirpath=output_dirpath,
     )

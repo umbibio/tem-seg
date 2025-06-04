@@ -29,7 +29,13 @@ def load_mask(msk_filepath: str | Path) -> PIL.Image.Image:
     msk_filepath = Path(msk_filepath)
 
     msk = PIL.Image.open(msk_filepath)
-    assert msk.mode == "L", f"Mask must have a single channel, got mode {msk.mode}"
+    n_channels = len(msk.getbands())
+    assert n_channels == 1, f"Mask must have a single channel, got {n_channels}"
+
+    if msk.mode == 'P':
+        arr = np.array(msk).astype(float)
+        assert arr.max() == 1
+        msk = PIL.Image.fromarray((arr * 255).astype(np.uint8), mode='L')
 
     return msk
 
@@ -112,7 +118,7 @@ def save_fixed_scale_sample(
 
     options = tf.io.TFRecordOptions(compression_type="GZIP")
     spl_filepath.parent.mkdir(parents=True, exist_ok=True)
-    with tf.io.TFRecordWriter(spl_filepath, options=options) as file_writer:
+    with tf.io.TFRecordWriter(spl_filepath.as_posix(), options=options) as file_writer:
         for record in dataset:
             example = _make_example(record)
             record_bytes = example.SerializeToString()
@@ -167,7 +173,6 @@ def make_tfrecords(
     slides_dirpath: Path,
     masks_dirpath: Path,
     organelle: str,
-    target_scale: float,
     slide_format: str = "tif",
     output_dirpath: Path | None = None,
 ) -> None:
@@ -178,6 +183,7 @@ def make_tfrecords(
 
     i_size = config[organelle]["tile_shape"][0]
     o_size = config[organelle]["window_shape"][0]
+    target_scale = config[organelle]["target_scale"]
 
     print("\ngenerating fixed scale samples")
 

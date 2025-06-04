@@ -20,6 +20,7 @@ models
 
 # data
 studies
+*.tfrecord
 
 # image data and predictions
 *.tif
