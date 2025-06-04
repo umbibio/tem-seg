@@ -20,7 +20,7 @@ This repository contains a pipeline for the analysis of mitochondria morphology 
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/tem-paper-reproducibility.git
+git clone https://github.com/umbibio/tem-seg-reproducibility.git
 cd tem-paper-reproducibility
 
 # Install the package in development mode
