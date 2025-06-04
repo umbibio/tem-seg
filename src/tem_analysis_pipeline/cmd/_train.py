@@ -13,17 +13,22 @@ if TYPE_CHECKING:
     from keras import Model
     from keras.src.callbacks import ModelCheckpoint
     import keras
+    from tensorflow.python.data.ops.dataset_ops import DatasetV2 as Dataset
 else:
     from tensorflow.keras import Model
     from tensorflow.keras.callbacks import ModelCheckpoint
     import tensorflow.keras as keras
+    from tensorflow.data import Dataset
 
 
 keras.config.set_dtype_policy("float32")
 
 
 class PersistentBestModelCheckpoint(ModelCheckpoint):
-    def __init__(self, filepath, **kwargs):
+    best: dict
+    json_path: Path
+
+    def __init__(self, dirpath: str | Path, **kwargs):
         if "save_best_only" in kwargs.keys() and not kwargs.get("save_best_only"):
             print(
                 "Warning: The PersistentBestModelCheckpoint is specifically for saving best models accross runs."
@@ -31,23 +36,25 @@ class PersistentBestModelCheckpoint(ModelCheckpoint):
             print("         Will ignore the provided `save_best_only=False` option.")
         kwargs.update(dict(save_best_only=True))
 
-        super().__init__(filepath, **kwargs)
+        dirpath = Path(dirpath)
+
+        super().__init__(dirpath.with_suffix(".keras"), **kwargs)
 
         assert self.save_freq == "epoch"
 
-        if os.path.exists(filepath):
-            assert os.path.isdir(filepath)
+        if dirpath.exists():
+            assert dirpath.is_dir()
         else:
-            os.makedirs(filepath)
+            dirpath.mkdir(parents=True)
 
-        self.json_path = os.path.join(filepath, "best_logs.json")
-        if os.path.exists(self.json_path):
+        self.json_path = dirpath / "best_logs.json"
+        if self.json_path.exists():
             with open(self.json_path, "r") as file:
-                best_logs = json.load(file)
+                best_logs: dict = json.load(file)
 
             self.best = best_logs.get(self.monitor)
 
-    def on_epoch_end(self, epoch, logs=None):
+    def on_epoch_end(self, epoch: int, logs: dict | None = None):
         try:
             logs = logs or {}
             logs = to_numpy_or_python_type(logs)
@@ -61,13 +68,17 @@ class PersistentBestModelCheckpoint(ModelCheckpoint):
 
 
 def get_dataset(
+    dataset_name: str,
+    split: Literal["tra_val", "tst"],
+    organelle: Literal["cell", "mitochondria", "nucleus"],
     tile_shape: tuple[int, int],
     window_shape: tuple[int, int],
-    fold_dir: Path,
-    split: Literal["tra", "val", "tst"],
+    fold_n: int = 1,
+    total_folds: int = 1,
     fraction_of_empty_to_keep: float = 1.0,
     shuffle: bool = True,
-):
+    random_state: int = 42,
+) -> Dataset | tuple[Dataset, Dataset]:
     from ..model.utils import crop_labels_to_shape
     from ..model.utils import (
         read_tfrecord,
@@ -77,48 +88,69 @@ def get_dataset(
         keep_fraction_of_empty_labels,
     )
 
-    files = tf.data.Dataset.list_files(f"{fold_dir}/{split}/*.tfrecord")
-    dataset = files.interleave(
-        tf.data.TFRecordDataset, num_parallel_calls=tf.data.AUTOTUNE, deterministic=True
-    )
-    dataset = dataset.map(read_tfrecord, num_parallel_calls=tf.data.AUTOTUNE)
-    dataset = dataset.map(
-        set_tile_shape(tile_shape), num_parallel_calls=tf.data.AUTOTUNE
-    )
+    if not 0 <= fold_n < total_folds:
+        raise ValueError(f"fold_n must be between 1 and {total_folds}. Got {fold_n}.")
 
-    if fraction_of_empty_to_keep < 1.0:
-        dataset = dataset.filter(
-            keep_fraction_of_empty_labels(fraction_of_empty_to_keep)
+    dataset_dirpath = Path("data") / dataset_name
+    params = dict(num_parallel_calls=tf.data.AUTOTUNE)
+
+    tfrecords_dirpath = dataset_dirpath / split / organelle / "tfrecords"
+    files = tf.data.Dataset.list_files(f"{tfrecords_dirpath}/*.tfrecord", shuffle=False)
+    dataset = files.interleave(tf.data.TFRecordDataset, deterministic=True, **params)
+    dataset = dataset.map(read_tfrecord, **params)
+    dataset = dataset.map(set_tile_shape(tile_shape), **params)
+    dataset = dataset.map(crop_labels_to_shape(window_shape), **params)
+    dataset = dataset.cache()
+
+    if split == "tra_val":
+        if fraction_of_empty_to_keep < 1.0:
+            dataset = dataset.filter(
+                keep_fraction_of_empty_labels(fraction_of_empty_to_keep)
+            )
+
+        num_elements = dataset.reduce(
+            tf.constant(0, dtype=tf.int64), lambda x, _: x + 1
         )
+        dataset = dataset.shuffle(buffer_size=num_elements, seed=random_state)
+        dataset = dataset.enumerate()
 
-    if split in ["tra", "val"]:
-        dataset = dataset.cache()
-        dataset = dataset.map(
-            random_flip_and_rotation, num_parallel_calls=tf.data.AUTOTUNE
-        )
-        dataset = dataset.map(random_image_adjust, num_parallel_calls=tf.data.AUTOTUNE)
+        def is_validation(index, data):
+            return index % total_folds == fold_n - 1
 
-    if shuffle:
-        dataset = dataset.shuffle(buffer_size=32, reshuffle_each_iteration=True)
+        def is_training(index, data):
+            return index % total_folds != fold_n - 1
 
-    dataset = dataset.map(
-        crop_labels_to_shape(window_shape), num_parallel_calls=tf.data.AUTOTUNE
-    )
-    return dataset
+        training_dataset = dataset.filter(is_training).map(lambda i, d: d)
+        validation_dataset = dataset.filter(is_validation).map(lambda i, d: d)
+
+        training_dataset = training_dataset.map(random_flip_and_rotation, **params)
+        training_dataset = training_dataset.map(random_image_adjust, **params)
+
+        if shuffle:
+            training_dataset = training_dataset.shuffle(
+                buffer_size=32, reshuffle_each_iteration=True
+            )
+
+        return training_dataset, validation_dataset
+
+    elif split == "tst":
+        return dataset
+
+    else:
+        raise ValueError(f"Unknown split: {split}")
 
 
 def train(
-    working_dir: Path,
+    dataset_name: str,
     organelle: Literal["cell", "mitochondria", "nucleus"] = "mitochondria",
-    k_fold: int = 1,
+    fold_n: int = 1,
+    total_folds: int = 1,
+    shuffle_training: bool = False,
     n_epochs_per_run: int = 1200,
 ) -> None:
     """Train a U-Net model for semantic segmentation of TEM images."""
     from ..model.losses import MyWeightedBinaryCrossEntropy
     from ..model.metrics import (
-        MyMeanDSC,
-        MyMeanIoU,
-        MyJaccardIndex,
         MyF1Score,
         MyF2Score,
     )
@@ -127,12 +159,15 @@ def train(
 
     from ..model.config import config
 
-    working_dir = Path(working_dir)
-    fold_dir = working_dir / f"kf{k_fold}"
+    if total_folds > 1:
+        working_dir = Path("models/cross_validation")
+    else:
+        working_dir = Path("models/single_fold")
+    working_dir = working_dir / dataset_name / organelle / f"kf{fold_n}"
 
     if organelle not in config.keys():
         print(
-            "Error: Could not find the organelle name from the current working directory. Exiting..."
+            f"Error: Could not find the organelle name {organelle} in the config file. Exiting..."
         )
         exit()
 
@@ -145,26 +180,28 @@ def train(
     filters_root = params["filters_root"]
     fraction_of_empty_to_keep = params["fraction_of_empty_to_keep"]
 
-    train_dataset = get_dataset(
+    training_dataset, validation_dataset = get_dataset(
+        dataset_name,
+        "tra_val",
+        organelle,
         tile_shape,
         window_shape,
-        fold_dir,
-        split="tra",
+        fold_n=fold_n,
+        total_folds=total_folds,
         fraction_of_empty_to_keep=fraction_of_empty_to_keep,
+        shuffle=shuffle_training,
+        random_state=42,
     )
-    validation_dataset = get_dataset(
-        tile_shape,
-        window_shape,
-        fold_dir,
-        split="val",
-        fraction_of_empty_to_keep=fraction_of_empty_to_keep,
-    )
+    validation_dataset = validation_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
+    training_dataset = training_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
 
     model: Model
-    if os.path.exists(f"{fold_dir}/ckpt/last/saved_model.pb"):
-        with open(f"{fold_dir}/logs/metrics.tsv") as file:
+    if os.path.exists(f"{working_dir}/ckpt/last.keras"):
+        with open(f"{working_dir}/logs/metrics.tsv") as file:
             initial_epoch = sum(1 for line in file) - 1
-        model = keras.models.load_model("ckpt/last", custom_objects=custom_objects)
+        model = keras.models.load_model(
+            "ckpt/last.keras", custom_objects=custom_objects
+        )
     else:
         initial_epoch = 0
         # building the model
@@ -173,9 +210,6 @@ def train(
         )
 
         loss = MyWeightedBinaryCrossEntropy(pos_weight=loss_pos_weight)
-        mean_iou_metric = MyMeanIoU(name="mean_iou", threshold=0.5)
-        mean_dsc_metric = MyMeanDSC(name="dice_coefficient", threshold=0.5)
-        jc_index_metric = MyJaccardIndex(name="jaccard_index", threshold=0.5)
         f1_score_metric = MyF1Score(name="f1_score", threshold=0.5)
         f2_score_metric = MyF2Score(name="f2_score", threshold=0.5)
 
@@ -183,10 +217,7 @@ def train(
             loss=loss,
             optimizer="adam",
             metrics=[
-                mean_iou_metric,
-                mean_dsc_metric,
                 "Recall",
-                jc_index_metric,
                 f1_score_metric,
                 f2_score_metric,
             ],
@@ -196,36 +227,20 @@ def train(
     total_epochs = n_epochs_per_run * (initial_epoch // n_epochs_per_run + 1)
 
     history = model.fit(
-        train_dataset.batch(batch_size, drop_remainder=True).prefetch(tf.data.AUTOTUNE),
-        validation_data=validation_dataset.batch(
-            batch_size, drop_remainder=True
-        ).prefetch(tf.data.AUTOTUNE),
+        training_dataset,
+        validation_data=validation_dataset,
         initial_epoch=initial_epoch,
         epochs=total_epochs,
         callbacks=[
             keras.callbacks.CSVLogger(
-                f"{fold_dir}/logs/metrics.tsv", separator="\t", append=True
+                f"{working_dir}/logs/metrics.tsv", separator="\t", append=True
             ),
-            keras.callbacks.TensorBoard(f"{fold_dir}/logs", profile_batch=0),
-            keras.callbacks.ModelCheckpoint(f"{fold_dir}/ckpt/last"),
+            keras.callbacks.TensorBoard(f"{working_dir}/logs", profile_batch=0),
+            keras.callbacks.ModelCheckpoint(f"{working_dir}/ckpt/last.keras"),
             PersistentBestModelCheckpoint(
-                f"{fold_dir}/ckpt/best_loss",
+                f"{working_dir}/ckpt/best_loss",
                 save_best_only=True,
                 monitor="val_loss",
-                verbose=1,
-            ),
-            PersistentBestModelCheckpoint(
-                f"{fold_dir}/ckpt/best_dice",
-                save_best_only=True,
-                monitor="val_dice_coefficient",
-                mode="max",
-                verbose=1,
-            ),
-            PersistentBestModelCheckpoint(
-                f"{fold_dir}/ckpt/best_f2",
-                save_best_only=True,
-                monitor="val_f2_score",
-                mode="max",
                 verbose=1,
             ),
         ],
@@ -233,9 +248,8 @@ def train(
         workers=12,
     )
     final_epoch = initial_epoch + len(history.history["loss"])
-    model.save(f"{fold_dir}/ckpt/intermediate/{final_epoch:05d}")
 
-    test_dataset = get_dataset(tile_shape, window_shape, fold_dir, split="tst")
+    test_dataset = get_dataset(dataset_name, "tst", organelle, tile_shape, window_shape)
     thresholds = np.arange(0, 1, 0.005).tolist()
     metrics = [
         keras.metrics.TruePositives(thresholds=thresholds),
@@ -247,8 +261,6 @@ def train(
     result = model.evaluate(test_dataset.batch(8), verbose=2)[1:]
     result = [r.astype(int).tolist() for r in result]
 
-    json_path = os.path.join(
-        fold_dir, "evaluation", f"{final_epoch:05d}_evaluation.json"
-    )
+    json_path = working_dir / "evaluation" / f"{final_epoch:05d}_evaluation.json"
     with open(json_path, "w") as file:
         json.dump(result, file)

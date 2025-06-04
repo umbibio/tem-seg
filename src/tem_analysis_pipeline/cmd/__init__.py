@@ -14,15 +14,21 @@ app = typer.Typer(
 
 @app.command("train")
 def train_command(
-    working_dir: Annotated[
-        Path, Argument(help="Working directory containing the dataset")
+    dataset_name: Annotated[
+        str, Argument(help="Name of the dataset to train on")
     ],
     organelle: Annotated[
         str, Option("--organelle", "-o", help="Target organelle for segmentation")
     ] = "mitochondria",
-    k_fold: Annotated[
-        int, Option("--k-fold", "-k", help="K-fold cross-validation fold number")
+    fold_n: Annotated[
+        int, Option("--fold-n", "-f", help="Fold number")
     ] = 1,
+    total_folds: Annotated[
+        int, Option("--total-folds", "-t", help="Total number of folds")
+    ] = 1,
+    shuffle_training: Annotated[
+        bool, Option("--shuffle-training", "-s", help="Shuffle training data")
+    ] = False,
     n_epochs_per_run: Annotated[
         int,
         Option("--n-epochs-per-run", "-e", help="Number of epochs per training run"),
@@ -31,7 +37,7 @@ def train_command(
     """Train a U-Net model for semantic segmentation of TEM images."""
     from ._train import train
 
-    train(working_dir, organelle, k_fold, n_epochs_per_run)
+    train(dataset_name, organelle, fold_n, total_folds, shuffle_training, n_epochs_per_run)
 
 
 @app.command("predict")
