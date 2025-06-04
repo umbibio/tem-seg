@@ -6,7 +6,9 @@ This repository contains a pipeline for the analysis of mitochondria morphology 
 
 ## Status
 
-**Note:** Previous codebase was developed for an old version of TensorFlow (2.9) and has been updated to be compatible with TensorFlow 2.19. The training functionality now includes k-fold cross-validation and improved model checkpointing, but is still being tested and may not work as expected.
+Full datasets will be available soon, and instructions for downloading them will be provided in this repository. 
+
+**Note:** Previous codebase was developed for an old version of TensorFlow (2.9) and has been updated to be compatible with TensorFlow 2.19. We have tested the codebase and it works as expected. Please file an issue if you encounter any problems. Thank you for your patience.
 
 ## Installation
 
