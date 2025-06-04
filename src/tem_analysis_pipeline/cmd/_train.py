@@ -67,6 +67,10 @@ class PersistentBestModelCheckpoint(ModelCheckpoint):
             super().on_epoch_end(epoch, logs)
 
 
+def _is_gzipped(filepath: str | Path) -> bool:
+    with open(filepath, "rb") as file:
+        return file.read(2) == b"\x1f\x8b"
+
 def get_dataset(
     dataset_name: str,
     split: Literal["tra_val", "tst"],
@@ -88,7 +92,7 @@ def get_dataset(
         keep_fraction_of_empty_labels,
     )
 
-    if not 0 <= fold_n < total_folds:
+    if not 0 < fold_n <= total_folds:
         raise ValueError(f"fold_n must be between 1 and {total_folds}. Got {fold_n}.")
 
     dataset_dirpath = Path("data") / dataset_name
@@ -96,7 +100,14 @@ def get_dataset(
 
     tfrecords_dirpath = dataset_dirpath / split / organelle / "tfrecords"
     files = tf.data.Dataset.list_files(f"{tfrecords_dirpath}/*.tfrecord", shuffle=False)
-    dataset = files.interleave(tf.data.TFRecordDataset, deterministic=True, **params)
+
+    first_filepath = tfrecords_dirpath.glob("*.tfrecord").__next__()
+    compression_type = "GZIP" if _is_gzipped(first_filepath) else None
+
+    def _load_tfrecord_dataset(filepath: str) -> tf.data.TFRecordDataset:
+        return tf.data.TFRecordDataset(filepath, compression_type=compression_type)
+
+    dataset = files.interleave(_load_tfrecord_dataset, deterministic=True, **params)
     dataset = dataset.map(read_tfrecord, **params)
     dataset = dataset.map(set_tile_shape(tile_shape), **params)
     dataset = dataset.map(crop_labels_to_shape(window_shape), **params)
@@ -160,7 +171,7 @@ def train(
     from ..model.config import config
 
     if total_folds > 1:
-        working_dir = Path("models/cross_validation")
+        working_dir = Path(f"models/{total_folds}fold_cross_validation")
     else:
         working_dir = Path("models/single_fold")
     working_dir = working_dir / dataset_name / organelle / f"kf{fold_n}"
@@ -245,7 +256,6 @@ def train(
             ),
         ],
         verbose=2,
-        workers=12,
     )
     final_epoch = initial_epoch + len(history.history["loss"])
 
