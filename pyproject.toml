@@ -1,6 +1,6 @@
 [project]
 name = "tem-analysis-pipeline"
-version = "0.2.0"
+version = "0.3.0"
 description = "Codebase for the analysis of mitochondria morphology using semantic segmentation on TEM images."
 readme = "README.md"
 authors = [
