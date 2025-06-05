@@ -24,7 +24,7 @@ def text_phantom(text):
     # meant to create templates for single letters
     assert len(text) == 1, "`text_phantom` takes a single character"
     size = 430
-    fontfile = fontdir / "LiberationSans-Bold.ttf"
+    fontfile = fontdir / "NotoSans-Bold.ttf"
 
     # Create font
     pil_font = ImageFont.truetype(fontfile, size=size, encoding="unic")
