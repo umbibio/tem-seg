@@ -3,6 +3,7 @@
 
 # Hidden files exceptions
 !.git*
+!.*.toml
 
 # Python-generated files
 __pycache__/
