@@ -21,20 +21,17 @@ def compute_analysis(
     n_jobs: int = 1,
 ) -> None:
     """
-    Compute analysis for the given image files using the specified model predictions.
+    Compute analysis for images in a study using the specified model predictions.
 
     Args:
-        filepaths: List of paths to the image files to process
-        model_version: Version of the model to use
+        study_name: Name of the study to analyze
+        model_name: Name of the model used for predictions
         organelle: Target organelle for the analysis
-        trg_scale: Target scale for the analysis in um/px
         redo_analysis: Whether to redo analysis even if output file exists
         force_convolution: Whether to force convolution even if soft prediction exists
-        models_folder: Optional folder containing the models
-        use_ensemble: Whether to use ensemble model
-        cross_validation_kfolds: Number of folds for cross-validation
         n_jobs: Number of parallel jobs to run
     """
+
     studies_basedir = Path("studies")
     study_dir = studies_basedir / study_name
     target_scale = config[organelle]["target_scale"]

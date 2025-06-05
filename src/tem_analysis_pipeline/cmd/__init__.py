@@ -135,6 +135,43 @@ def analyze_command(
     )
 
 
+@app.command("consolidate")
+def consolidate_command(
+    study_name: Annotated[str, Argument(help="Name of the study to consolidate results for")],
+    model_name: Annotated[
+        str,
+        Option(
+            "--model-name",
+            "-n",
+            help="Name of the model used for predictions",
+        ),
+    ] = "Mixture",
+    organelle: Annotated[
+        str, Option("--organelle", "-o", help="Target organelle for consolidation")
+    ] = "mitochondria",
+    output_file: Annotated[
+        str,
+        Option(
+            "--output-file",
+            "-f",
+            help="Path to save the consolidated CSV file",
+        ),
+    ] = None,
+) -> None:
+    """Consolidate all CSV analysis results for a study into a single file."""
+    from ..analysis._consolidate import consolidate_study_results
+
+    if output_file is None:
+        output_file = f"results/{study_name}_{model_name}_{organelle}_consolidated.csv"
+
+    consolidate_study_results(
+        study_name=study_name,
+        model_name=model_name,
+        organelle=organelle,
+        output_file=output_file,
+    )
+
+
 preprocess_app = typer.Typer(help="Preprocess slides and masks for training")
 app.add_typer(preprocess_app, name="preprocess")
 
