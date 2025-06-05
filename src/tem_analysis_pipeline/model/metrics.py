@@ -2,8 +2,10 @@ import tensorflow as tf
 # from tensorflow_addons.metrics import F1Score, FBetaScore
 from keras import Metric
 from tensorflow.keras.backend import epsilon
+from keras.saving import register_keras_serializable
 
 
+@register_keras_serializable()
 class MyMeanIoU(Metric):
     def __init__(self, name='mean_iou', from_logits=False, threshold=None, **kwargs):
         super().__init__(name=name, **kwargs)
@@ -57,7 +59,7 @@ class MyMeanIoU(Metric):
     def from_config(cls, config):
         return cls(**config)
 
-
+@register_keras_serializable()
 class MyMeanDSC(Metric):
     def __init__(self, name='mean_dsc', from_logits=False, threshold=None, **kwargs):
         super().__init__(name=name, **kwargs)
@@ -111,7 +113,7 @@ class MyMeanDSC(Metric):
     def from_config(cls, config):
         return cls(**config)
 
-
+@register_keras_serializable()
 class MyConfussionMatrixBaseClass(Metric):
     def __init__(self, name='confussion_matrix', from_logits=False, threshold=None, **kwargs):
         super().__init__(name=name, **kwargs)
@@ -167,7 +169,7 @@ class MyConfussionMatrixBaseClass(Metric):
     def from_config(cls, config):
         return cls(**config)
 
-
+@register_keras_serializable()
 class MyJaccardIndex(MyConfussionMatrixBaseClass):
     def __init__(self, name='jaccard_index', **kwargs):
         super().__init__(name=name, **kwargs)
@@ -177,7 +179,7 @@ class MyJaccardIndex(MyConfussionMatrixBaseClass):
         denominator = self.tp + self.fp + self.fn + epsilon()
         return numerator / denominator
 
-
+@register_keras_serializable()
 class MyF1Score(MyConfussionMatrixBaseClass):
     def __init__(self, name='f1_score', **kwargs):
         super().__init__(name=name, **kwargs)
@@ -187,7 +189,7 @@ class MyF1Score(MyConfussionMatrixBaseClass):
         denominator = numerator + self.fn + self.fp + epsilon()
         return numerator / denominator
 
-
+@register_keras_serializable()
 class MyF2Score(MyConfussionMatrixBaseClass):
     def __init__(self, name='f2_score', **kwargs):
         super().__init__(name=name, **kwargs)

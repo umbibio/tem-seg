@@ -2,15 +2,16 @@ from .losses import MyWeightedBinaryCrossEntropy
 from .metrics import MyMeanDSC, MyMeanIoU, MyJaccardIndex, MyF1Score, MyF2Score
 from keras.layers import SpatialDropout2D as _BaseSpatialDropout2D
 from keras.layers import Conv2DTranspose as _BaseConv2DTranspose
+from keras.saving import register_keras_serializable
 
-
+@register_keras_serializable()
 class SpatialDropout2D(_BaseSpatialDropout2D):
     def __init__(self, *args, **kwargs):
         for key in ["trainable", "noise_shape"]:
             kwargs.pop(key, None)
         super().__init__(*args, **kwargs)
 
-
+@register_keras_serializable()
 class Conv2DTranspose(_BaseConv2DTranspose):
     def __init__(self, *args, **kwargs):
         for key in ["groups"]:

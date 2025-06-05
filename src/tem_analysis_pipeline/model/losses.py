@@ -1,8 +1,9 @@
 import warnings
 import tensorflow as tf
 from tensorflow.keras.backend import epsilon
+from keras.saving import register_keras_serializable
 
-
+@register_keras_serializable()
 class MyWeightedBinaryCrossEntropy(tf.keras.losses.Loss):
     def __init__(self, pos_weight: float = 2., name: str = 'weighted_binary_crossentropy', from_logits: bool = False, **kwargs) -> None:
         # map legacy "auto" → new default
