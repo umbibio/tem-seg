@@ -61,7 +61,7 @@ def save_fixed_scale_sample(
         output_dirpath / organelle / "tfrecords" / f"{img_filepath.stem}.tfrecord"
     )
     if spl_filepath.exists():
-        print(f"Skipping {img_filepath} because it already exists.")
+        print(f"Skipping. {spl_filepath} already exists.")
         return
 
     # load image
@@ -236,7 +236,7 @@ def make_tfrecords(
     i = 0
     for slide, mask in train_pairs:
         i += 1
-        print(f"{i: 4d}", slide.name, organelle, flush=True)
+        print(f"training slide {i: 4d}:", slide.name, flush=True, end="\t")
         save_fixed_scale_sample(
             slide,
             mask,
@@ -250,7 +250,7 @@ def make_tfrecords(
     i = 0
     for slide, mask in test_pairs:
         i += 1
-        print(f"{i: 4d}", slide.name, organelle, flush=True)
+        print(f"testing slide {i: 4d}:", slide.name, flush=True, end="\t")
         save_fixed_scale_sample(
             slide,
             mask,

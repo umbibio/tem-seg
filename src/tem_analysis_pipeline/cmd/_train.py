@@ -151,7 +151,7 @@ def get_dataset(
         training_dataset = training_dataset.map(random_flip_and_rotation, **params)
         training_dataset = training_dataset.map(random_image_adjust, **params)
         if shuffle:
-            training_dataset = training_dataset.shuffle(buffer_size=32)
+            training_dataset = training_dataset.shuffle(buffer_size=batch_size * 2)
 
         training_dataset = training_dataset.map(_label_crop_fn, **params)
         training_dataset = training_dataset.repeat()

@@ -376,6 +376,10 @@ def read_tfrecord(record):
     img_tile = tf.io.parse_tensor(sample['img_tile'], tf.float16)
     msk_tile = tf.io.parse_tensor(sample['msk_tile'], tf.float16)
 
+    # cast to float32
+    img_tile = tf.cast(img_tile, tf.float32)
+    msk_tile = tf.cast(msk_tile, tf.float32)
+
     return img_tile, msk_tile
 
 
