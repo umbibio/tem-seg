@@ -29,7 +29,23 @@ cd tem-paper-reproducibility
 pip install -e .
 ```
 
-## Data Download
+## Pre-trained Models Download
+
+The pre-trained models are hosted on Zenodo. You can download them using the provided script:
+
+```bash
+# Navigate to the repository root
+cd tem-paper-reproducibility
+
+# Run the download script
+bash scripts/download_models.sh
+```
+
+This script will download and extract the following files:
+- `tem-seg-models_v1.0.0.tar.gz`: Contains all pre-trained models
+
+
+## Training Data Download
 
 The TEM image dataset and masks are hosted on Zenodo. You can download them using the provided script:
 

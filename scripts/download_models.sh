@@ -2,13 +2,12 @@
 
 set -e
 
-ZENODO_RECORD_ID="15602048"
+ZENODO_RECORD_ID="15602446"
 
 BASE_URL="https://zenodo.org/records/${ZENODO_RECORD_ID}/files/"
 
 files=(
-    "tem-seg-data_slide_images.tar.gz"
-    "tem-seg-data_mitochondria_masks.tar.gz"
+    "tem-seg-models_v1.0.0.tar.gz"
 )
 
 for file in "${files[@]}"; do
