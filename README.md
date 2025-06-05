@@ -6,7 +6,7 @@ This repository contains a pipeline for the analysis of mitochondria morphology 
 
 ## Status
 
-Full datasets will be available soon, and instructions for downloading them will be provided in this repository. 
+The datasets are now available for download. See the [Data Download](#data-download) section for instructions.
 
 **Note:** Previous codebase was developed for an old version of TensorFlow (2.9) and has been updated to be compatible with TensorFlow 2.19. We have tested the codebase and it works as expected. Please file an issue if you encounter any problems. Thank you for your patience.
 
@@ -28,6 +28,39 @@ cd tem-paper-reproducibility
 # Install the package in development mode
 pip install -e .
 ```
+
+## Data Download
+
+The TEM image dataset and masks are hosted on Zenodo. You can download them using the provided script:
+
+```bash
+# Navigate to the repository root
+cd tem-paper-reproducibility
+
+# Run the download script
+bash scripts/download_images.sh
+```
+
+This script will download and extract the following files:
+- `tem-seg-data_slide_images.tar.gz`: Contains all TEM slide images
+- `tem-seg-data_mitochondria_masks.tar.gz`: Contains all mitochondria masks
+
+## Preparing TFRecords
+
+After downloading the data, you need to convert the images and masks to TFRecord format for training:
+
+```bash
+# Run the TFRecord creation script
+bash scripts/make_tfrecords.sh
+```
+
+This script will process the following datasets:
+- DRP1-KO
+- HCI-010
+- Mixture
+- PIM001-P
+
+For each dataset, it creates TFRecords for both training/validation and test sets (except for the Mixture dataset which doesn't have a test set).
 
 ## Usage
 
@@ -219,9 +252,11 @@ The training process can be customized with the following parameters:
 - `batch_size`: Batch size for training
 - `n_epochs_per_run`: Number of epochs per training run
 
-## License
+## Dataset and Pre-trained Models
 
-TODO
+Arriojas Maldonado, A. A., Baek, M., Berner, M. J., Zhurkevich, A., Hinton, Jr., A., Meyer, M., Dobrolecki, L., Lewis, M. T., Zarringhalam, K., & Echeverria, G. (2025). TEM Mitochondria Segmentation Dataset for Triple Negative Breast Cancer Chemotherapy Analysis (1.0.0) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.15602048
+
+Arriojas Maldonado, A. A., Baek, M., Berner, M. J., Zhurkevich, A., Hinton, Jr., A., Meyer, M., Dobrolecki, L., Lewis, M. T., Zarringhalam, K., & Echeverria, G. (2025). U-Net Model Weights for TEM Mitochondria Segmentation in Triple Negative Breast Cancer (1.0.0). Zenodo. https://doi.org/10.5281/zenodo.15602446
 
 ## Citation
 
