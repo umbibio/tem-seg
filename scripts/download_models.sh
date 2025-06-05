@@ -16,7 +16,7 @@ for file in "${files[@]}"; do
         echo "Downloading $file"
         wget -O "$file" "${BASE_URL}${file}?download=1"
         echo "Download complete. Extracting..."
-        tar -xzf "$file"
+        tar -xzvf "$file"
         echo "Extraction complete."
     fi
 done

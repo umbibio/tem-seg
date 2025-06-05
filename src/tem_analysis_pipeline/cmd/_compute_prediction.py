@@ -33,30 +33,30 @@ def compute_prediction(
     """
     from ..model.config import config
 
-    trg_scale = config[organelle]["target_scale"]
-
-    predictions_basedir = Path("prediction")
-    if use_ensemble:
-        predictions_basedir /= model_version + "_ensemble"
-    else:
-        predictions_basedir /= model_version
-    predictions_basedir /= organelle
-
     prediction_tools.select_model_version(
         model_version,
         models_folder=models_folder,
         use_ensemble=use_ensemble,
         cross_validation_kfolds=cross_validation_kfolds,
     )
+
+    trg_scale = config[organelle]["target_scale"]
+
+    model_name = model_version
+    if use_ensemble:
+        model_name += f"_k{cross_validation_kfolds}"
+
+    predictions_basedir = Path("prediction") / model_name / organelle
+
     model = None
 
     for img_filepath in filepaths:
         assert img_filepath.exists(), f"Image file {img_filepath} does not exist"
 
-        output_basedir = img_filepath.parent.joinpath(predictions_basedir)
+        output_basedir = img_filepath.parent / predictions_basedir
 
-        prd_filepath = output_basedir.joinpath(
-            re.sub(".tif$", f"-{organelle}.png", img_filepath.name)
+        prd_filepath = output_basedir / re.sub(
+            ".tif$", f"-{organelle}.png", img_filepath.name
         )
         print(img_filepath, flush=True)
 
