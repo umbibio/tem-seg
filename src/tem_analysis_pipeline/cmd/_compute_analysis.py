@@ -2,62 +2,57 @@ import json
 import re
 from pathlib import Path
 
-
+import pandas as pd
 from joblib import Parallel, delayed
 from PIL import Image
 
-from .. import prediction_tools, calibration
+from .. import calibration, prediction_tools
 from ..analysis import _analysis as analysis
+from ..calibration import NoScaleError, NoScaleNumberError, NoScaleUnitError
+from ..model.config import config
 
-if __name__ == "__main__":
-    import argparse
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("filepaths", type=str, nargs="+")
-    parser.add_argument("--model-version", type=str, required=True)
-    parser.add_argument("--organelle", type=str, required=True)
-    parser.add_argument("--trg-scale", type=float, required=True)
-    parser.add_argument("--redo-analysis", action="store_true")
-    parser.add_argument("--force-convolution", action="store_true")
-    parser.add_argument("--n-jobs", type=int, default=1)
-    args = parser.parse_args()
+def compute_analysis(
+    study_name: str,
+    model_name: str,
+    organelle: str,
+    redo_analysis: bool = False,
+    force_convolution: bool = False,
+    n_jobs: int = 1,
+) -> None:
+    """
+    Compute analysis for the given image files using the specified model predictions.
 
-    predictions_basedir = Path("prediction").joinpath(
-        args.model_version, args.organelle
-    )
-    metadata_basedir = Path("metadata")
-    # model_version is like vNN_string
-    version_number = int(re.match("^v(\d+)", args.model_version).group(1))
-
-    prediction_tools.select_model_version(args.model_version)
+    Args:
+        filepaths: List of paths to the image files to process
+        model_version: Version of the model to use
+        organelle: Target organelle for the analysis
+        trg_scale: Target scale for the analysis in um/px
+        redo_analysis: Whether to redo analysis even if output file exists
+        force_convolution: Whether to force convolution even if soft prediction exists
+        models_folder: Optional folder containing the models
+        use_ensemble: Whether to use ensemble model
+        cross_validation_kfolds: Number of folds for cross-validation
+        n_jobs: Number of parallel jobs to run
+    """
+    studies_basedir = Path("studies")
+    study_dir = studies_basedir / study_name
+    target_scale = config[organelle]["target_scale"]
 
     def worker_task(img_filepath):
         img_filepath = Path(img_filepath)
+        img_name = img_filepath.name
 
         assert img_filepath.exists(), f"Image file {img_filepath} does not exist"
 
-        output_basedir = img_filepath.parent.joinpath(predictions_basedir)
+        p = re.compile(".tif$")
+        prd_filepath = predictions_dir / p.sub(f"-{organelle}.png", img_name)
+        sft_filepath = predictions_dir / p.sub(f"-{organelle}-soft.png", img_name)
+        jsn_filepath = predictions_dir / p.sub(f"-{organelle}.json", img_name)
+        csv_filepath = predictions_dir / p.sub(f"-{organelle}.csv", img_name)
+        geo_filepath = predictions_dir / p.sub(f"-{organelle}.geojson", img_name)
 
-        prd_filepath = output_basedir.joinpath(
-            re.sub(".tif$", f"-{args.organelle}.png", img_filepath.name)
-        )
-        sft_filepath = output_basedir.joinpath(
-            re.sub(".tif$", f"-{args.organelle}-soft.png", img_filepath.name)
-        )
-        jsn_filepath = output_basedir.joinpath(
-            re.sub(".tif$", f"-{args.organelle}.json", img_filepath.name)
-        )
-        scs_filepath = output_basedir.joinpath(
-            re.sub(".tif$", f"-{args.organelle}-scores.json", img_filepath.name)
-        )
-        geo_filepath = output_basedir.joinpath(
-            re.sub(".tif$", f"-{args.organelle}.geojson", img_filepath.name)
-        )
-        met_filepath = metadata_basedir.joinpath(
-            re.sub(".tif$", ".json", img_filepath.name)
-        )
-
-        if jsn_filepath.exists() and not args.redo_analysis:
+        if jsn_filepath.exists() and not redo_analysis:
             print("Already analyzed:", jsn_filepath, flush=True)
             return
 
@@ -66,45 +61,64 @@ if __name__ == "__main__":
             return
 
         print(prd_filepath, flush=True)
-        img = prediction_tools.load_image(img_filepath.as_posix())
+        try:
+            img = prediction_tools.load_image(img_filepath.as_posix())
 
-        if met_filepath.exists():
-            with open(met_filepath, "r") as file:
-                metadata = json.load(file)
-                img_scale = metadata["scale_um_per_px"]
-        else:
-            img_scale = calibration.get_calibration(img)
-            metadata = {"scale_um_per_px": img_scale}
-            with open(met_filepath, "w") as file:
-                json.dump(metadata, file)
+            try:
+                img_scale = calibration.get_calibration(img)
+            except (NoScaleError, NoScaleNumberError, NoScaleUnitError) as e:
+                print(
+                    f"Warning: could not get scale for {img_filepath}: {e}",
+                    flush=True,
+                )
+                return
 
-        if not sft_filepath.exists() or args.force_convolution:
-            print("Computing soft prediction ...", flush=True)
-            prd = Image.open(prd_filepath)
-            sft = prediction_tools.convolve_prediction(
-                prd, img_scale, args.trg_scale, args.trg_scale * 2 / 3, 24
+            if not sft_filepath.exists() or force_convolution:
+                print("Computing soft prediction ...", flush=True)
+                prd = Image.open(prd_filepath)
+                sft = prediction_tools.convolve_prediction(
+                    prd, img_scale, img_scale, target_scale * 2 / 3, 24
+                )
+                sft_filepath.parent.mkdir(parents=True, exist_ok=True)
+                sft.save(sft_filepath)
+            else:
+                sft = Image.open(sft_filepath)
+
+            prd = prediction_tools.threshold_prediction(sft, threshold=0.5)
+            prd = prediction_tools.remove_small_predictions(
+                prd, img_scale, min_area_um2=0.018
             )
-            sft.save(sft_filepath)
-        else:
-            sft = Image.open(sft_filepath)
 
-        prd = prediction_tools.threshold_prediction(sft, threshold=0.5)
-        prd = prediction_tools.remove_small_predictions(
-            prd, img_scale, min_area_um2=0.018
+            print("Analyzing prediction ...", flush=True)
+            data, annotations = analysis.analyze_organelle_prediction(
+                img, prd, img_scale, organelle
+            )
+
+            jsn_filepath.parent.mkdir(parents=True, exist_ok=True)
+            with open(jsn_filepath, "w") as file:
+                json.dump(data[organelle], file)
+
+            csv_filepath.parent.mkdir(parents=True, exist_ok=True)
+            df = pd.DataFrame(data[organelle])
+            df.to_csv(csv_filepath)
+
+            geo_filepath.parent.mkdir(parents=True, exist_ok=True)
+            with open(geo_filepath, "w") as file:
+                json.dump(annotations, file)
+
+        except Exception as e:
+            print(f"Error processing {img_filepath}: {e}", flush=True)
+            return
+
+    for condition_dir in study_dir.iterdir():
+        if not condition_dir.is_dir():
+            continue
+
+        predictions_dir = condition_dir / "prediction" / model_name / organelle
+
+        image_list = sorted(condition_dir.glob("*.tif"))
+
+        Parallel(n_jobs=n_jobs)(
+            delayed(worker_task)(img_filepath) for img_filepath in image_list
         )
-
-        print("Analyzing prediction ...", flush=True)
-        data, annotations = analysis.analyze_organelle_prediction(
-            img, prd, img_scale, args.organelle
-        )
-
-        with open(jsn_filepath, "w") as file:
-            json.dump(data[args.organelle], file)
-
-        with open(geo_filepath, "w") as file:
-            json.dump(annotations, file)
-
-    Parallel(n_jobs=args.n_jobs)(
-        delayed(worker_task)(img_filepath) for img_filepath in args.filepaths
-    )
-    print("\n")
+        print("\n")

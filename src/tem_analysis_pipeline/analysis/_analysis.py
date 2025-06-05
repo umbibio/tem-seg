@@ -1,13 +1,13 @@
 import os
 import typing
-from typing import Optional, Tuple
+from typing import Tuple
 
-import calibration
 import cv2
 import numpy as np
-import prediction_tools
 from PIL import Image
 from shapely.geometry import Polygon
+
+from .. import prediction_tools
 
 NONDIM_MEASUREMENTS = ["idx", "closest_nuc_idx"]
 TWODIM_MEASUREMENTS = ["area", "hull_area"]
@@ -68,123 +68,11 @@ def compute_feret(hull_points):
     return min(heights), x.max(), heights.mean(), (heights * bases).sum() / bases.sum()
 
 
-def analyze_mitochondria_prediction(img: Image.Image, mit_prd: Image.Image) -> dict:
-    img_filename = os.path.basename(img.filename)
-    um_per_pixel = calibration.get_calibration(img)
-    assert um_per_pixel > 0.0, f"{um_per_pixel = }"
-    units = "μm"
-
-    prd_arr = np.array(mit_prd)
-
-    # print("\t\tfinding contours", flush=True)
-    mit_contours = cv2.findContours(prd_arr, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)[
-        0
-    ]
-
-    annotations = []
-    # print("\t\tprocesing mitochondria measurements", flush=True)
-    mit_data_list = []
-    for mit_idx, mit_contour in enumerate(mit_contours):
-        mit_center_um = mit_contour.mean(axis=0).round().astype(int)[0] * um_per_pixel
-        mit_arcl_um = cv2.arcLength(mit_contour, True) * um_per_pixel
-        mit_area_px2 = cv2.contourArea(mit_contour)
-        mit_area_um2 = mit_area_px2 * um_per_pixel**2
-        _, (w, h), _ = cv2.minAreaRect(mit_contour)
-        mit_length_um = max(w, h) * um_per_pixel
-        mit_width_um = min(w, h) * um_per_pixel
-
-        if mit_area_px2 < 25:
-            continue
-
-        mit_hull = cv2.convexHull(mit_contour)
-        (
-            mit_mincaliper_px,
-            mit_maxcaliper_px,
-            mit_meancaliper_px,
-            mit_wmeancaliper_px,
-        ) = compute_feret(mit_hull)
-        mit_mincaliper_um = mit_mincaliper_px * um_per_pixel
-        mit_maxcaliper_um = mit_maxcaliper_px * um_per_pixel
-        mit_meancaliper_um = mit_meancaliper_px * um_per_pixel
-        mit_wmeancaliper_um = mit_wmeancaliper_px * um_per_pixel
-
-        # estimating mitochondria thickness
-        x = np.sqrt(
-            ((mit_contour[None, ...] - mit_contour[:, None]) ** 2).sum(axis=-1)
-        )[..., 0]
-        x = np.tril(x, k=0)
-        z = x[x > 0]
-        y, bins = np.histogram(z, bins=np.arange(0, int(z.max())))
-        mit_thickness_um = np.argmax(y) * um_per_pixel
-
-        tips_area = np.pi * (mit_thickness_um / 2) ** 2
-        inner_area = np.maximum(0, mit_area_um2 - tips_area)
-        extended_length_um = inner_area / mit_thickness_um + mit_thickness_um
-
-        mit_data = dict(
-            sample=img_filename,
-            idx=mit_idx,
-            center=mit_center_um.tolist(),
-            arc_length=mit_arcl_um,
-            area=mit_area_um2,
-            thickness=mit_thickness_um,
-            extended_length=extended_length_um,
-            length=mit_length_um,
-            width=mit_width_um,
-            min_caliper=mit_mincaliper_um,
-            max_caliper=mit_maxcaliper_um,
-            mean_caliper=mit_meancaliper_um,
-            weighted_mean_caliper=mit_wmeancaliper_um,
-        )
-        mit_data_list.append(mit_data)
-        mit_measurements = [
-            {
-                "name": (
-                    f"{' '.join([kk.capitalize() for kk in k.replace('nuc', 'nucleus').split('_')])}"
-                    f"{' ' + units if k in UNIDIM_MEASUREMENTS else (' ' + units + '^2' if k in TWODIM_MEASUREMENTS else '')}"
-                ),
-                "value": v,
-            }
-            for k, v in mit_data.items()
-            if k in NONDIM_MEASUREMENTS + TWODIM_MEASUREMENTS + UNIDIM_MEASUREMENTS
-        ]
-        # print(json.dumps(mit_measurements, indent=4))
-        mit_contour_coordinates = mit_contour.transpose([1, 0, 2]).tolist()
-        mit_contour_coordinates[0].append(mit_contour_coordinates[0][0])
-        annotations.append(
-            {
-                "type": "Feature",
-                "geometry": {
-                    "type": "Polygon",
-                    "coordinates": mit_contour_coordinates,
-                },
-                "properties": {
-                    "object_type": "annotation",
-                    "classification": {"name": "mitochondria", "colorRGB": -16744448},
-                    "isLocked": False,
-                    "measurements": mit_measurements,
-                },
-            },
-        )
-
-    data = dict(
-        mitochondria=mit_data_list,
-        metadata=dict(
-            image_path=img.filename,
-            sample_name=img_filename,
-            um_per_pixel=um_per_pixel,
-        ),
-    )
-
-    return data, annotations
-
-
 def analyze_organelle_prediction(
     img: Image.Image,
     prd: Image.Image,
     img_scale: float,
     organelle: str,
-    trg_scale: Optional[float] = None,
 ) -> dict:
     img_filename = os.path.basename(img.filename)
     um_per_pixel = img_scale
@@ -225,7 +113,7 @@ def analyze_organelle_prediction(
         org_meancaliper_um = org_meancaliper_px * um_per_pixel
         org_wmeancaliper_um = org_wmeancaliper_px * um_per_pixel
 
-        # estimating mitochondria thickness
+        # estimating organelle thickness
         x = np.sqrt(
             ((org_contour[None, ...] - org_contour[:, None]) ** 2).sum(axis=-1)
         )[..., 0]

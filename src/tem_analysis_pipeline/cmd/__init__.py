@@ -92,6 +92,49 @@ def predict_command(
     )
 
 
+@app.command("analyze")
+def analyze_command(
+    study_name: Annotated[str, Argument(help="Name of the study to analyze")],
+    model_name: Annotated[
+        str,
+        Option(
+            "--model-name",
+            "-n",
+            help="Name of the model to use. E.g. Mixture or Mixture_k5",
+        ),
+    ] = "Mixture",
+    organelle: Annotated[
+        str, Option("--organelle", "-o", help="Target organelle for analysis")
+    ] = "mitochondria",
+    redo_analysis: Annotated[
+        bool,
+        Option("--redo-analysis", "-r", help="Redo analysis even if output exists"),
+    ] = False,
+    force_convolution: Annotated[
+        bool,
+        Option(
+            "--force-convolution",
+            "-c",
+            help="Force convolution even if soft prediction exists",
+        ),
+    ] = False,
+    n_jobs: Annotated[
+        int, Option("--n-jobs", "-j", help="Number of parallel jobs")
+    ] = 1,
+) -> None:
+    """Analyze predictions for the given image files using the specified model."""
+    from ._compute_analysis import compute_analysis
+
+    compute_analysis(
+        study_name=study_name,
+        model_name=model_name,
+        organelle=organelle,
+        redo_analysis=redo_analysis,
+        force_convolution=force_convolution,
+        n_jobs=n_jobs,
+    )
+
+
 preprocess_app = typer.Typer(help="Preprocess slides and masks for training")
 app.add_typer(preprocess_app, name="preprocess")
 
