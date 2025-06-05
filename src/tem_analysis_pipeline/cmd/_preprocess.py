@@ -1,19 +1,19 @@
-from pathlib import Path
-import os
 import gc
-
+import os
+from pathlib import Path
 
 import PIL.Image
 import PIL.TiffImagePlugin
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 from sklearn.model_selection import train_test_split
 
-from ..calibration import get_calibration, NoScaleError
+from ..calibration import NoScaleError, get_calibration
 
 PIL.Image.MAX_IMAGE_PIXELS = 10_000_000_000
+
 
 def load_image(img_filepath: str | Path) -> PIL.Image.Image:
     img_filepath = Path(img_filepath)
@@ -34,10 +34,10 @@ def load_mask(msk_filepath: str | Path) -> PIL.Image.Image:
     n_channels = len(msk.getbands())
     assert n_channels == 1, f"Mask must have a single channel, got {n_channels}"
 
-    if msk.mode == 'P':
+    if msk.mode == "P":
         arr = np.array(msk).astype(float)
         assert arr.max() == 1
-        msk = PIL.Image.fromarray((arr * 255).astype(np.uint8), mode='L')
+        msk = PIL.Image.fromarray((arr * 255).astype(np.uint8), mode="L")
 
     return msk
 
@@ -222,7 +222,9 @@ def make_tfrecords(
     train_pairs: list[tuple[Path, Path]]
     test_pairs: list[tuple[Path, Path]]
     if test_size > 0:
-        train_pairs, test_pairs = train_test_split(valid_pairs, test_size=test_size, random_state=random_state)
+        train_pairs, test_pairs = train_test_split(
+            valid_pairs, test_size=test_size, random_state=random_state
+        )
     elif test_size == 0:
         train_pairs = valid_pairs
         test_pairs = []

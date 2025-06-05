@@ -1,5 +1,5 @@
-from pathlib import Path
 import re
+from pathlib import Path
 from typing import Literal
 
 from tem_analysis_pipeline import prediction_tools
@@ -66,7 +66,9 @@ def compute_prediction(
             prd_filepath.parent.mkdir(parents=True, exist_ok=True)
 
             if model is None:
-                model = prediction_tools.get_organelle_ensemble_model(organelle, ckpt=checkpoint)
+                model = prediction_tools.get_organelle_ensemble_model(
+                    organelle, ckpt=checkpoint
+                )
 
             try:
                 prd = prediction_tools.image_prediction(img, model, trg_scale=trg_scale)

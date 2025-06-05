@@ -1,17 +1,12 @@
-import os
-from pathlib import Path
-import sys
 import itertools
-from glob import glob
+from pathlib import Path
 
 import cv2
 import numpy as np
 import scipy as sp
-
 from PIL import Image
 
 from .calibration import fix_image_scale
-
 
 CONFIG = {}
 
@@ -43,10 +38,9 @@ def select_model_version(
 
 def build_ensemble(models):
     import tensorflow as tf
-    from tensorflow.keras import layers
-    from tensorflow.keras import backend
+    from tensorflow.keras import backend, layers
 
-    from .model.custom_objects import MyWeightedBinaryCrossEntropy, MyMeanDSC, MyMeanIoU
+    from .model.custom_objects import MyMeanDSC, MyMeanIoU, MyWeightedBinaryCrossEntropy
 
     m = models[0]
     if hasattr(m, "input"):
@@ -90,14 +84,13 @@ def build_ensemble(models):
 
 def load_nontrainable_model(p, round_output=False):
     import tensorflow as tf
-    from tensorflow.keras import layers
-    from tensorflow.keras import backend
+    from tensorflow.keras import backend, layers
 
     from .model.custom_objects import (
-        custom_objects,
-        MyWeightedBinaryCrossEntropy,
         MyMeanDSC,
         MyMeanIoU,
+        MyWeightedBinaryCrossEntropy,
+        custom_objects,
     )
 
     model = tf.keras.models.load_model(p, custom_objects=custom_objects)
@@ -127,10 +120,7 @@ def get_list_of_models(organelle, ckpt="last", round_output=False):
     filepaths = sorted(model_root.glob(f"{organelle}/kf??/ckpt/{ckpt}.keras"))
     if not filepaths:
         filepaths = sorted(model_root.glob(f"{organelle}/kf??/ckpt/{ckpt}.h5"))
-    return [
-        load_nontrainable_model(p, round_output=round_output)
-        for p in filepaths
-    ]
+    return [load_nontrainable_model(p, round_output=round_output) for p in filepaths]
 
 
 def get_organelle_ensemble_model(organelle, ckpt="last"):
@@ -344,9 +334,9 @@ def remove_small_predictions(
 def _gkern(sig=0.8):
     """creates gaussian kernel with side length `l` and a sigma of `sig`"""
     # https://stackoverflow.com/questions/29731726
-    l = round(sig * 5)
-    l += l % 2 + 1
-    ax = np.linspace(-(l - 1) / 2.0, (l - 1) / 2.0, l)
+    _l = round(sig * 5)
+    _l += _l % 2 + 1
+    ax = np.linspace(-(_l - 1) / 2.0, (_l - 1) / 2.0, _l)
     gauss = np.exp(-0.5 * np.square(ax) / np.square(sig))
     kernel = np.outer(gauss, gauss)
     return kernel / np.sum(kernel)
@@ -394,9 +384,9 @@ def change_scale(
 
 
 def test_convolution():
-    import tensorflow as tf
     import numpy as np
     import scipy as sp
+    import tensorflow as tf
 
     arr = np.array(
         [

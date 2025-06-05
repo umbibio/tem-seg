@@ -1,16 +1,17 @@
 import tensorflow as tf
+
 # from tensorflow_addons.metrics import F1Score, FBetaScore
 from keras import Metric
-from tensorflow.keras.backend import epsilon
 from keras.saving import register_keras_serializable
+from tensorflow.keras.backend import epsilon
 
 
 @register_keras_serializable()
 class MyMeanIoU(Metric):
-    def __init__(self, name='mean_iou', from_logits=False, threshold=None, **kwargs):
+    def __init__(self, name="mean_iou", from_logits=False, threshold=None, **kwargs):
         super().__init__(name=name, **kwargs)
-        self.iou = self.add_weight(name='iou', initializer='zeros')
-        self.cnt = self.add_weight(name='cnt', initializer='zeros')
+        self.iou = self.add_weight(name="iou", initializer="zeros")
+        self.cnt = self.add_weight(name="cnt", initializer="zeros")
         self.from_logits = from_logits
         self.threshold = threshold
 
@@ -27,13 +28,15 @@ class MyMeanIoU(Metric):
 
         reduce_axis = list(range(1, len(y_pred.shape)))
         intersection = tf.reduce_sum(y_pred * y_true, axis=reduce_axis)
-        union = tf.reduce_sum(y_pred + y_true, axis=reduce_axis) - intersection + epsilon()
+        union = (
+            tf.reduce_sum(y_pred + y_true, axis=reduce_axis) - intersection + epsilon()
+        )
         values = intersection / union
 
         if sample_weight is not None:
             sample_weight = tf.cast(sample_weight, self.dtype)
             values = tf.multiply(values, sample_weight)
-            count =  tf.reduce_sum(sample_weight)
+            count = tf.reduce_sum(sample_weight)
         else:
             count = tf.cast(len(values), self.dtype)
 
@@ -46,11 +49,11 @@ class MyMeanIoU(Metric):
 
     def reset_state(self):
         # The state of the metric will be reset at the start of each epoch.
-        self.iou.assign(0.)
-        self.cnt.assign(0.)
-    
+        self.iou.assign(0.0)
+        self.cnt.assign(0.0)
+
     def get_config(self):
-        config = {'from_logits': self.from_logits}
+        config = {"from_logits": self.from_logits}
         base_config = super().get_config()
 
         return {**base_config, **config}
@@ -59,12 +62,13 @@ class MyMeanIoU(Metric):
     def from_config(cls, config):
         return cls(**config)
 
+
 @register_keras_serializable()
 class MyMeanDSC(Metric):
-    def __init__(self, name='mean_dsc', from_logits=False, threshold=None, **kwargs):
+    def __init__(self, name="mean_dsc", from_logits=False, threshold=None, **kwargs):
         super().__init__(name=name, **kwargs)
-        self.dsc = self.add_weight(name='dsc', initializer='zeros')
-        self.cnt = self.add_weight(name='cnt', initializer='zeros')
+        self.dsc = self.add_weight(name="dsc", initializer="zeros")
+        self.cnt = self.add_weight(name="cnt", initializer="zeros")
         self.from_logits = from_logits
         self.threshold = threshold
 
@@ -81,13 +85,17 @@ class MyMeanDSC(Metric):
 
         reduce_axis = list(range(1, len(y_pred.shape)))
         numerator = 2 * tf.reduce_sum(y_pred * y_true, axis=reduce_axis)
-        denominator = tf.reduce_sum(y_pred, axis=reduce_axis) + tf.reduce_sum(y_true, axis=reduce_axis) + epsilon()
+        denominator = (
+            tf.reduce_sum(y_pred, axis=reduce_axis)
+            + tf.reduce_sum(y_true, axis=reduce_axis)
+            + epsilon()
+        )
         values = numerator / denominator
 
         if sample_weight is not None:
             sample_weight = tf.cast(sample_weight, self.dtype)
             values = tf.multiply(values, sample_weight)
-            count =  tf.reduce_sum(sample_weight)
+            count = tf.reduce_sum(sample_weight)
         else:
             count = tf.cast(len(values), self.dtype)
 
@@ -100,11 +108,11 @@ class MyMeanDSC(Metric):
 
     def reset_state(self):
         # The state of the metric will be reset at the start of each epoch.
-        self.dsc.assign(0.)
-        self.cnt.assign(0.)
+        self.dsc.assign(0.0)
+        self.cnt.assign(0.0)
 
     def get_config(self):
-        config = {'from_logits': self.from_logits}
+        config = {"from_logits": self.from_logits}
         base_config = super().get_config()
 
         return {**base_config, **config}
@@ -113,17 +121,20 @@ class MyMeanDSC(Metric):
     def from_config(cls, config):
         return cls(**config)
 
+
 @register_keras_serializable()
 class MyConfussionMatrixBaseClass(Metric):
-    def __init__(self, name='confussion_matrix', from_logits=False, threshold=None, **kwargs):
+    def __init__(
+        self, name="confussion_matrix", from_logits=False, threshold=None, **kwargs
+    ):
         super().__init__(name=name, **kwargs)
         self.threshold = threshold
         self.from_logits = from_logits
-        self.tp = self.add_weight(name='tp', initializer='zeros')
-        self.fp = self.add_weight(name='fp', initializer='zeros')
-        self.fn = self.add_weight(name='fn', initializer='zeros')
-        self.tn = self.add_weight(name='tn', initializer='zeros')
-    
+        self.tp = self.add_weight(name="tp", initializer="zeros")
+        self.fp = self.add_weight(name="fp", initializer="zeros")
+        self.fn = self.add_weight(name="fn", initializer="zeros")
+        self.tn = self.add_weight(name="tn", initializer="zeros")
+
     def update_state(self, y_true, y_pred, sample_weight=None):
         y_true = tf.convert_to_tensor(y_true, dtype=self.dtype)
         y_pred = tf.convert_to_tensor(y_pred, dtype=self.dtype)
@@ -134,7 +145,7 @@ class MyConfussionMatrixBaseClass(Metric):
         if self.threshold is not None:
             y_pred = y_pred > self.threshold
             y_pred = tf.cast(y_pred, dtype=self.dtype)
-        
+
         reduce_axis = list(range(1, len(y_pred.shape)))
         tp = tf.reduce_sum(y_pred * y_true, axis=reduce_axis)
         fp = tf.reduce_sum(y_pred * (1 - y_true), axis=reduce_axis)
@@ -155,13 +166,13 @@ class MyConfussionMatrixBaseClass(Metric):
 
     def reset_state(self):
         # The state of the metric will be reset at the start of each epoch.
-        self.tp.assign(0.)
-        self.fp.assign(0.)
-        self.fn.assign(0.)
-        self.tn.assign(0.)
+        self.tp.assign(0.0)
+        self.fp.assign(0.0)
+        self.fn.assign(0.0)
+        self.tn.assign(0.0)
 
     def get_config(self):
-        config = {'from_logits': self.from_logits, 'threshold': self.threshold}
+        config = {"from_logits": self.from_logits, "threshold": self.threshold}
         base_config = super().get_config()
         return {**base_config, **config}
 
@@ -169,34 +180,37 @@ class MyConfussionMatrixBaseClass(Metric):
     def from_config(cls, config):
         return cls(**config)
 
+
 @register_keras_serializable()
 class MyJaccardIndex(MyConfussionMatrixBaseClass):
-    def __init__(self, name='jaccard_index', **kwargs):
+    def __init__(self, name="jaccard_index", **kwargs):
         super().__init__(name=name, **kwargs)
-    
+
     def result(self):
         numerator = self.tp
         denominator = self.tp + self.fp + self.fn + epsilon()
         return numerator / denominator
 
+
 @register_keras_serializable()
 class MyF1Score(MyConfussionMatrixBaseClass):
-    def __init__(self, name='f1_score', **kwargs):
+    def __init__(self, name="f1_score", **kwargs):
         super().__init__(name=name, **kwargs)
-    
+
     def result(self):
         numerator = 2 * self.tp
         denominator = numerator + self.fn + self.fp + epsilon()
         return numerator / denominator
 
+
 @register_keras_serializable()
 class MyF2Score(MyConfussionMatrixBaseClass):
-    def __init__(self, name='f2_score', **kwargs):
+    def __init__(self, name="f2_score", **kwargs):
         super().__init__(name=name, **kwargs)
-    
+
     def result(self):
         numerator = 5 * self.tp
-        denominator = numerator +  4 * self.fn + self.fp + epsilon()
+        denominator = numerator + 4 * self.fn + self.fp + epsilon()
         return numerator / denominator
 
 
@@ -235,15 +249,14 @@ if False:
     metric.update_state(y_true, y_pred)
     metric.result().numpy()
 
-    metric = tfa.metrics.F1Score(num_classes=1, threshold=0.5, average='micro')
+    metric = tfa.metrics.F1Score(num_classes=1, threshold=0.5, average="micro")
     metric.update_state(y_true, y_pred)
     metric.result().numpy()
 
-    metric = F1Score(threshold=0.5, average='micro')
+    metric = F1Score(threshold=0.5, average="micro")
     metric.update_state(y_true, y_pred)
     metric.result().numpy()
 
-    metric = F2Score(threshold=0.5, average='micro')
+    metric = F2Score(threshold=0.5, average="micro")
     metric.update_state(y_true, y_pred)
     metric.result().numpy()
-

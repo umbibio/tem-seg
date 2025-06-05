@@ -1,11 +1,10 @@
 """Command-line interface for TEM analysis pipeline."""
 
 from pathlib import Path
-from typing import List, Annotated
+from typing import Annotated, List
 
 import typer
-from typer import Option, Argument
-
+from typer import Argument, Option
 
 # Create the main app
 app = typer.Typer(
@@ -59,7 +58,9 @@ def predict_command(
     ] = "mitochondria",
     force_prediction: Annotated[
         bool,
-        Option("--force-prediction", "-f", help="Force prediction even if output exists"),
+        Option(
+            "--force-prediction", "-f", help="Force prediction even if output exists"
+        ),
     ] = False,
     models_folder: Annotated[
         Path | None,
@@ -72,7 +73,8 @@ def predict_command(
         str, Option("--checkpoint", "-c", help="Checkpoint to use")
     ] = "last",
     cross_validation_kfolds: Annotated[
-        int | None, Option("--cross-validation-kfolds", "-k", help="Cross-validation k-folds")
+        int | None,
+        Option("--cross-validation-kfolds", "-k", help="Cross-validation k-folds"),
     ] = None,
 ) -> None:
     """Compute predictions for the given image files using the specified model."""
@@ -113,10 +115,11 @@ def preprocess_tfrecords(
     ] = 42,
 ) -> None:
     """Preprocess slides and masks into TFRecords format for training."""
-    from ._preprocess import make_tfrecords
     import tensorflow as tf
 
-    with tf.device('/CPU:0'):
+    from ._preprocess import make_tfrecords
+
+    with tf.device("/CPU:0"):
         make_tfrecords(
             dataset_name=dataset_name,
             slides_dirpath=slides_dirpath,

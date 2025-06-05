@@ -1,8 +1,7 @@
-from typing import TYPE_CHECKING
-from pathlib import Path
-from typing import Literal
 import json
 import os
+from pathlib import Path
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import tensorflow as tf
@@ -10,15 +9,15 @@ import tensorflow as tf
 from ..model.utils import to_numpy_or_python_type
 
 if TYPE_CHECKING:
+    import keras
     from keras import Model
     from keras.src.callbacks import ModelCheckpoint
-    import keras
     from tensorflow.python.data.ops.dataset_ops import DatasetV2 as Dataset
 else:
-    from tensorflow.keras import Model
-    from tensorflow.keras.callbacks import ModelCheckpoint
     import tensorflow.keras as keras
     from tensorflow.data import Dataset
+    from tensorflow.keras import Model
+    from tensorflow.keras.callbacks import ModelCheckpoint
 
 
 keras.config.set_dtype_policy("float32")
@@ -85,13 +84,13 @@ def get_dataset(
     shuffle: bool = True,
     random_state: int = 42,
 ) -> Dataset | tuple[Dataset, Dataset | None]:
-    from ..model.utils import crop_labels_to_shape
     from ..model.utils import (
-        read_tfrecord,
-        set_tile_shape,
+        crop_labels_to_shape,
+        keep_fraction_of_empty_labels,
         random_flip_and_rotation,
         random_image_adjust,
-        keep_fraction_of_empty_labels,
+        read_tfrecord,
+        set_tile_shape,
     )
 
     if not 0 < fold_n <= total_folds:
@@ -191,15 +190,14 @@ def train(
     n_epochs_per_run: int = 1200,
 ) -> None:
     """Train a U-Net model for semantic segmentation of TEM images."""
+    from ..model._unet import make_unet
+    from ..model.config import config
+    from ..model.custom_objects import custom_objects
     from ..model.losses import MyWeightedBinaryCrossEntropy
     from ..model.metrics import (
         MyF1Score,
         MyF2Score,
     )
-    from ..model.custom_objects import custom_objects
-    from ..model._unet import make_unet
-
-    from ..model.config import config
 
     if total_folds > 1:
         working_dir = Path(f"models/{total_folds}-fold_cross_validation")

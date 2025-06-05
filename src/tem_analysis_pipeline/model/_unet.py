@@ -1,35 +1,36 @@
 from typing import TYPE_CHECKING
+
 from tensorflow import Tensor
 from tensorflow.keras import Model
 
 if TYPE_CHECKING:
     from keras.src.layers import (
+        Activation,
+        BatchNormalization,
+        Concatenate,
         Conv2D,
         Conv2DTranspose,
-        SpatialDropout2D,
-        BatchNormalization,
         Cropping2D,
-        Concatenate,
-        Activation,
-        MaxPooling2D,
         GaussianNoise,
-        LeakyReLU,
         Input,
+        LeakyReLU,
+        MaxPooling2D,
+        SpatialDropout2D,
     )
 
 else:
     from tensorflow.keras.layers import (
+        Activation,
+        BatchNormalization,
+        Concatenate,
         Conv2D,
         Conv2DTranspose,
-        SpatialDropout2D,
-        BatchNormalization,
         Cropping2D,
-        Concatenate,
-        Activation,
-        MaxPooling2D,
         GaussianNoise,
-        LeakyReLU,
         Input,
+        LeakyReLU,
+        MaxPooling2D,
+        SpatialDropout2D,
     )
 
 
