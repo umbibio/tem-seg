@@ -1,6 +1,6 @@
 from pathlib import Path
-
 import os
+import gc
 
 
 import PIL.Image
@@ -13,6 +13,7 @@ from sklearn.model_selection import train_test_split
 
 from ..calibration import get_calibration, NoScaleError
 
+PIL.Image.MAX_IMAGE_PIXELS = 10_000_000_000
 
 def load_image(img_filepath: str | Path) -> PIL.Image.Image:
     img_filepath = Path(img_filepath)
@@ -59,6 +60,9 @@ def save_fixed_scale_sample(
     spl_filepath = (
         output_dirpath / organelle / "tfrecords" / f"{img_filepath.stem}.tfrecord"
     )
+    if spl_filepath.exists():
+        print(f"Skipping {img_filepath} because it already exists.")
+        return
 
     # load image
     img = load_image(img_filepath)
@@ -113,9 +117,23 @@ def save_fixed_scale_sample(
     sampls = img_arr_swv.reshape((-1, i_size, i_size))
     labels = msk_arr_swv.reshape((-1, i_size, i_size))
 
-    sampls = (sampls / 255).astype(np.float32)
-    labels = (labels / 255).astype(np.float32)
-    dataset = tf.data.Dataset.from_tensor_slices((sampls, labels))
+    sampls = (sampls / 255).astype(np.float16)
+    labels = (labels / 255).astype(np.float16)
+
+    del img, msk, img_arr, msk_arr, img_arr_swv, msk_arr_swv
+    gc.collect()
+
+    def _data_generator():
+        for i in range(sampls.shape[0]):
+            yield (sampls[i], labels[i])
+
+    dataset = tf.data.Dataset.from_generator(
+        _data_generator,
+        output_signature=(
+            tf.TensorSpec(shape=(i_size, i_size), dtype=tf.float16),
+            tf.TensorSpec(shape=(i_size, i_size), dtype=tf.float16),
+        ),
+    )
 
     options = tf.io.TFRecordOptions(compression_type="GZIP")
     spl_filepath.parent.mkdir(parents=True, exist_ok=True)
@@ -176,7 +194,7 @@ def make_tfrecords(
     masks_dirpath: Path,
     organelle: str,
     slide_format: str = "tif",
-    test_size: float | int = 0.1,
+    test_size: float | int = 0,
     random_state: int = 42,
 ) -> None:
     from ..model.config import config
@@ -203,10 +221,21 @@ def make_tfrecords(
 
     train_pairs: list[tuple[Path, Path]]
     test_pairs: list[tuple[Path, Path]]
-    train_pairs, test_pairs = train_test_split(valid_pairs, test_size=test_size, random_state=random_state)
+    if test_size > 0:
+        train_pairs, test_pairs = train_test_split(valid_pairs, test_size=test_size, random_state=random_state)
+    elif test_size == 0:
+        train_pairs = valid_pairs
+        test_pairs = []
+    else:
+        train_pairs = []
+        test_pairs = valid_pairs
+
+    print(f"\n{len(train_pairs)} training samples")
+    print(f"{len(test_pairs)} test samples")
 
     i = 0
     for slide, mask in train_pairs:
+        i += 1
         print(f"{i: 4d}", slide.name, organelle, flush=True)
         save_fixed_scale_sample(
             slide,
@@ -220,6 +249,7 @@ def make_tfrecords(
 
     i = 0
     for slide, mask in test_pairs:
+        i += 1
         print(f"{i: 4d}", slide.name, organelle, flush=True)
         save_fixed_scale_sample(
             slide,

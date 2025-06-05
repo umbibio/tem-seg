@@ -346,8 +346,8 @@ def write_tfrecord_for_image_mask_pair( image_path: str, tile_shape: Tuple[int, 
 
     image = get_tiles_from_array(img_array, tile_shape, stride_shape, window_shape, pad_mode=pad_mode) / 255
     label = get_tiles_from_array(msk_array, tile_shape, stride_shape, window_shape, pad_mode=pad_mode) / 255
-    image = image.astype(np.float32)
-    label = label.astype(np.float32)
+    image = image.astype(np.float16)
+    label = label.astype(np.float16)
 
     dataset = tf.data.Dataset.from_tensor_slices((image, label))
 
@@ -372,16 +372,9 @@ def read_tfrecord(record):
     # read the sample
     sample =  tf.io.parse_single_example(record, features_for_example)
 
-    # arrays were created and stored as tf.float32
-    img_tile = tf.io.parse_tensor(sample['img_tile'], tf.float32)
-    msk_tile = tf.io.parse_tensor(sample['msk_tile'], tf.float32)
-
-    # # cast to float and normalize
-    # img_tile = tf.cast(img_tile, tf.float32) / 255
-    # msk_tile = tf.cast(msk_tile, tf.float32) / 255
-    # msk_tile_1 = tf.cast(msk_tile, tf.float32) / 255
-    # msk_tile_0 = 1. - msk_tile_1
-    # msk_tile = tf.concat([msk_tile_0, msk_tile_1], axis=-1)
+    # arrays were created and stored as tf.float16
+    img_tile = tf.io.parse_tensor(sample['img_tile'], tf.float16)
+    msk_tile = tf.io.parse_tensor(sample['msk_tile'], tf.float16)
 
     return img_tile, msk_tile
 

@@ -1,7 +1,7 @@
 """Command-line interface for TEM analysis pipeline."""
 
 from pathlib import Path
-from typing import List, Optional, Annotated
+from typing import List, Annotated
 
 import typer
 from typer import Option, Argument
@@ -104,7 +104,7 @@ def preprocess_tfrecords(
     ],
     test_size: Annotated[
         float, Option("--test-size", "-t", help="Fraction of data to use for testing")
-    ] = 0.1,
+    ] = 0.0,
     slide_format: Annotated[
         str, Option("--slide-format", "-f", help="Format of slide images")
     ] = "tif",
@@ -114,16 +114,18 @@ def preprocess_tfrecords(
 ) -> None:
     """Preprocess slides and masks into TFRecords format for training."""
     from ._preprocess import make_tfrecords
+    import tensorflow as tf
 
-    make_tfrecords(
-        dataset_name=dataset_name,
-        slides_dirpath=slides_dirpath,
-        masks_dirpath=masks_dirpath,
-        organelle=organelle,
-        slide_format=slide_format,
-        test_size=test_size,
-        random_state=random_state,
-    )
+    with tf.device('/CPU:0'):
+        make_tfrecords(
+            dataset_name=dataset_name,
+            slides_dirpath=slides_dirpath,
+            masks_dirpath=masks_dirpath,
+            organelle=organelle,
+            slide_format=slide_format,
+            test_size=test_size,
+            random_state=random_state,
+        )
 
 
 if __name__ == "__main__":
