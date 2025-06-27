@@ -1,24 +1,31 @@
 [tool.bumpversion]
 current_version = "0.3.0"
-parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
-serialize = ["{major}.{minor}.{patch}"]
+parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)(\\.dev(?P<dev>\\d+))?"
+serialize = [
+    "{major}.{minor}.{patch}.dev{dev}",
+    "{major}.{minor}.{patch}"
+]
 search = "{current_version}"
 replace = "{new_version}"
 regex = false
 ignore_missing_version = false
 ignore_missing_files = false
 tag = true
-sign_tags = false
+sign_tags = true
 tag_name = "v{new_version}"
 tag_message = "Bump version: {current_version} → {new_version}"
-allow_dirty = true
+allow_dirty = false
 commit = true
-message = "chore: Bump version {current_version} → {new_version}"
-moveable_tags = []
+message = "chore: Bump version: {current_version} → {new_version}"
+moveable_tags = ["latest", "stable"]
 commit_args = ""
 setup_hooks = []
 pre_commit_hooks = []
 post_commit_hooks = []
+
+[tool.bumpversion.parts.dev]
+optional_value = "release"
+first_value = "0"
 
 [[tool.bumpversion.files]]
 filename = "pyproject.toml"
