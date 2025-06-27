@@ -17,12 +17,13 @@ dependencies = [
     "scikit-learn>=1.6.1",
     "scipy>=1.15.2",
     "seaborn>=0.13.2",
-    "tensorflow>=2.19.0",
+    "tensorflow>=2.16.0",
     "typer>=0.16.0",
 ]
 
 [project.optional-dependencies]
-gpu = ["tensorflow[and-cuda]>=2.19.0"]
+cuda = ["tensorflow[and-cuda]"]
+gpu-mac = ["tensorflow-metal"]
 
 [project.scripts]
 tem-seg = "tem_analysis_pipeline.cmd:app"
