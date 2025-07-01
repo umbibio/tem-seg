@@ -196,10 +196,12 @@ def make_tfrecords(
     slide_format: str = "tif",
     test_size: float | int = 0,
     random_state: int = 42,
+    data_dirpath: str | Path ="data",
 ) -> None:
     from ..model.config import config
 
-    output_dirpath = Path("data") / dataset_name
+    data_dirpath = Path(data_dirpath)
+    output_dirpath = data_dirpath / dataset_name
 
     i_size = config[organelle]["tile_shape"][0]
     o_size = config[organelle]["window_shape"][0]

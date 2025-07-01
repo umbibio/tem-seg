@@ -32,6 +32,9 @@ def train_command(
         int,
         Option("--n-epochs-per-run", "-e", help="Number of epochs per training run"),
     ] = 1200,
+    data_dirpath: Annotated[
+        str, Option("--data-dirpath", "-d", help="Path to save TFRecords")
+    ] = "data",
 ) -> None:
     """Train a U-Net model for semantic segmentation of TEM images."""
     from ._train import train
@@ -44,6 +47,7 @@ def train_command(
         shuffle_training,
         batch_size,
         n_epochs_per_run,
+        data_dirpath,
     )
 
 
@@ -193,6 +197,9 @@ def preprocess_tfrecords(
     random_state: Annotated[
         int, Option("--random-state", "-r", help="Random state for splitting data")
     ] = 42,
+    data_dirpath: Annotated[
+        str, Option("--data-dirpath", "-d", help="Path to save TFRecords")
+    ] = "data",
 ) -> None:
     """Preprocess slides and masks into TFRecords format for training."""
     import tensorflow as tf
@@ -208,6 +215,7 @@ def preprocess_tfrecords(
             slide_format=slide_format,
             test_size=test_size,
             random_state=random_state,
+            data_dirpath=data_dirpath,
         )
 
 
