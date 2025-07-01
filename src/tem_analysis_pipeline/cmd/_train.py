@@ -83,6 +83,7 @@ def get_dataset(
     fraction_of_empty_to_keep: float = 1.0,
     shuffle: bool = True,
     random_state: int = 42,
+    data_dirpath: str | Path = "data",
 ) -> Dataset | tuple[Dataset, Dataset | None]:
     from ..model.utils import (
         crop_labels_to_shape,
@@ -96,7 +97,8 @@ def get_dataset(
     if not 0 < fold_n <= total_folds:
         raise ValueError(f"fold_n must be between 1 and {total_folds}. Got {fold_n}.")
 
-    dataset_dirpath = Path("data") / dataset_name
+    data_dirpath = Path(data_dirpath)
+    dataset_dirpath = data_dirpath / dataset_name
     params = dict(num_parallel_calls=tf.data.AUTOTUNE)
 
     tfrecords_dirpath = dataset_dirpath / split / organelle / "tfrecords"
@@ -188,6 +190,7 @@ def train(
     shuffle_training: bool = False,
     batch_size: int | None = None,
     n_epochs_per_run: int = 1200,
+    data_dirpath: str | Path = "data",
 ) -> None:
     """Train a U-Net model for semantic segmentation of TEM images."""
     from ..model._unet import make_unet
@@ -233,6 +236,7 @@ def train(
         fraction_of_empty_to_keep=fraction_of_empty_to_keep,
         shuffle=shuffle_training,
         random_state=42,
+        data_dirpath=data_dirpath,
     )
     steps_per_epoch = n_train // batch_size
     validation_steps = n_val // batch_size
@@ -299,7 +303,13 @@ def train(
     final_epoch = initial_epoch + len(history.history["loss"])
 
     test_dataset = get_dataset(
-        dataset_name, "tst", organelle, tile_shape, window_shape, batch_size=8
+        dataset_name,
+        "tst",
+        organelle,
+        tile_shape,
+        window_shape,
+        batch_size=8,
+        data_dirpath=data_dirpath,
     )
     thresholds = np.arange(0, 1, 0.005).tolist()
     metrics = [
