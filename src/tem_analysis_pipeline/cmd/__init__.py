@@ -6,13 +6,38 @@ from typing import Annotated, List
 import typer
 from typer import Argument, Option
 
-# Create the main app
-app = typer.Typer(
-    help="TEM Analysis Pipeline - Tools for training models and computing predictions on TEM images"
+# Import the scale estimation app
+from .scale_estimation import create_scale_app
+
+# Create the legacy app that will be used as a subcommand
+v1_app = typer.Typer(
+    help="Legacy TEM Analysis Pipeline (v1) - Original tools for training models and computing predictions on TEM images"
 )
 
+# Create the main app that will include the v1 app as a subcommand
+app = typer.Typer(
+    help="TEM-Seg - Semantic segmentation of TEM images with Scale Estimation and Workflow management"
+)
 
-@app.command("train")
+# Create scale app
+scale_app = create_scale_app()
+
+# Add apps as subcommands
+app.add_typer(v1_app, name="v1")
+app.add_typer(scale_app, name="scale")
+
+@app.callback()
+def main_callback():
+    """TEM-Seg - Semantic segmentation of TEM images with Scale Estimation and Workflow management.
+    
+    This is the main command-line interface for the TEM-Seg project. Use the 'v1' subcommand
+    to access the original functionality, or explore the new commands for the enhanced
+    workflow management system.
+    """
+    pass
+
+
+@v1_app.command("train")
 def train_command(
     dataset_name: Annotated[str, Argument(help="Name of the dataset to train on")],
     organelle: Annotated[
@@ -51,7 +76,7 @@ def train_command(
     )
 
 
-@app.command("predict")
+@v1_app.command("predict")
 def predict_command(
     filepaths: Annotated[List[Path], Argument(help="Paths to the image files")],
     model_version: Annotated[
@@ -96,7 +121,7 @@ def predict_command(
     )
 
 
-@app.command("analyze")
+@v1_app.command("analyze")
 def analyze_command(
     study_name: Annotated[str, Argument(help="Name of the study to analyze")],
     model_name: Annotated[
@@ -139,7 +164,7 @@ def analyze_command(
     )
 
 
-@app.command("consolidate")
+@v1_app.command("consolidate")
 def consolidate_command(
     study_name: Annotated[str, Argument(help="Name of the study to consolidate results for")],
     model_name: Annotated[
@@ -177,7 +202,7 @@ def consolidate_command(
 
 
 preprocess_app = typer.Typer(help="Preprocess slides and masks for training")
-app.add_typer(preprocess_app, name="preprocess")
+v1_app.add_typer(preprocess_app, name="preprocess")
 
 
 @preprocess_app.command("tfrecords")
@@ -218,6 +243,14 @@ def preprocess_tfrecords(
             data_dirpath=data_dirpath,
         )
 
+
+# For backward compatibility with scripts directly importing the v1 app
+legacy_app = v1_app
+
+# Function to run the v1 app directly (for the tem-seg-v1 entry point)
+def run_v1_app():
+    """Entry point for running the v1 app directly."""
+    v1_app()
 
 if __name__ == "__main__":
     app()
