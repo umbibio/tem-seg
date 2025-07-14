@@ -64,7 +64,7 @@ CHARACTER_TEMPLATE_ALPHABET = "0123456789umnμ"
 def get_character_templates(size=50):
     nclasses = len(CHARACTER_TEMPLATE_ALPHABET)
 
-    M = np.matrix(np.zeros((nclasses, size * size)))
+    M = np.zeros((nclasses, size * size))
     for i, c in enumerate(CHARACTER_TEMPLATE_ALPHABET):
         a = text_phantom(c)
         a = crop_and_stretch(a, size)
@@ -78,7 +78,7 @@ CHARACTER_TEMPLATE = get_character_templates(CHARACTER_TEMPLATE_SIZE)
 
 
 def predict_character(a):
-    a = np.matrix(crop_and_stretch(a, CHARACTER_TEMPLATE_SIZE).flatten()) / 255
+    a = crop_and_stretch(a, CHARACTER_TEMPLATE_SIZE).flatten() / 255
     return CHARACTER_TEMPLATE_ALPHABET[
         np.argmin(np.abs(CHARACTER_TEMPLATE - a).sum(axis=1))
     ]
