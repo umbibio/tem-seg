@@ -6,8 +6,9 @@ from typing import Annotated, List
 import typer
 from typer import Argument, Option
 
-# Import the scale estimation app
+# Import the subcommand apps
 from .scale_estimation import create_scale_app
+from .configuration import app as config_app
 
 # Create the legacy app that will be used as a subcommand
 v1_app = typer.Typer(
@@ -25,11 +26,13 @@ scale_app = create_scale_app()
 # Add apps as subcommands
 app.add_typer(v1_app, name="v1")
 app.add_typer(scale_app, name="scale")
+app.add_typer(config_app, name="config")
+
 
 @app.callback()
 def main_callback():
     """TEM-Seg - Semantic segmentation of TEM images with Scale Estimation and Workflow management.
-    
+
     This is the main command-line interface for the TEM-Seg project. Use the 'v1' subcommand
     to access the original functionality, or explore the new commands for the enhanced
     workflow management system.
@@ -166,7 +169,9 @@ def analyze_command(
 
 @v1_app.command("consolidate")
 def consolidate_command(
-    study_name: Annotated[str, Argument(help="Name of the study to consolidate results for")],
+    study_name: Annotated[
+        str, Argument(help="Name of the study to consolidate results for")
+    ],
     model_name: Annotated[
         str,
         Option(
@@ -247,10 +252,12 @@ def preprocess_tfrecords(
 # For backward compatibility with scripts directly importing the v1 app
 legacy_app = v1_app
 
+
 # Function to run the v1 app directly (for the tem-seg-v1 entry point)
 def run_v1_app():
     """Entry point for running the v1 app directly."""
     v1_app()
+
 
 if __name__ == "__main__":
     app()

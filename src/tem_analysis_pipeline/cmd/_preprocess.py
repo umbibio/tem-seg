@@ -196,7 +196,7 @@ def make_tfrecords(
     slide_format: str = "tif",
     test_size: float | int = 0,
     random_state: int = 42,
-    data_dirpath: str | Path ="data",
+    data_dirpath: str | Path = "data",
 ) -> None:
     from ..model.config import config
 
