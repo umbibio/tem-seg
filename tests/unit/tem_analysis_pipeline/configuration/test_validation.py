@@ -7,14 +7,14 @@ from tem_analysis_pipeline.configuration.config import (
     TrainingConfig,
     WorkflowConfig,
 )
-
-# BaseModelConfig import is used in WorkflowConfig assertions indirectly
-from tem_analysis_pipeline.model.unet import UNetConfig
 from tem_analysis_pipeline.configuration.validation import (
     ConfigValidator,
     ValidationError,
     ValidationLevel,
 )
+
+# BaseModelConfig import is used in WorkflowConfig assertions indirectly
+from tem_analysis_pipeline.model.unet import UNetConfig
 
 
 class TestConfigValidator:

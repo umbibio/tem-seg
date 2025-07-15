@@ -1,7 +1,7 @@
 """Test the new model configuration structure."""
 
 # We're not using pytest fixtures in this test
-from tem_analysis_pipeline.configuration import WorkflowConfig, OrganelleType
+from tem_analysis_pipeline.configuration import OrganelleType, WorkflowConfig
 from tem_analysis_pipeline.model.registry import create_model_from_config
 from tem_analysis_pipeline.model.unet.config import UNetConfig
 

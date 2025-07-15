@@ -6,9 +6,10 @@ from typing import Annotated, List
 import typer
 from typer import Argument, Option
 
+from .configuration import app as config_app
+
 # Import the subcommand apps
 from .scale_estimation import create_scale_app
-from .configuration import app as config_app
 
 # Create the legacy app that will be used as a subcommand
 v1_app = typer.Typer(

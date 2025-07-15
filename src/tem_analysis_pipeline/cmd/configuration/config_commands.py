@@ -17,7 +17,6 @@ from tem_analysis_pipeline.configuration.validation import (
     ValidationLevel,
 )
 
-
 # OrganelleType is now directly usable with CLI since it inherits from str
 # and has CLI-friendly values
 

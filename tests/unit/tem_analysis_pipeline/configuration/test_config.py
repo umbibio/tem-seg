@@ -12,12 +12,12 @@ from tem_analysis_pipeline.configuration.config import (
     TrainingConfig,
     WorkflowConfig,
 )
-from tem_analysis_pipeline.model.base import BaseModelConfig
-from tem_analysis_pipeline.model.unet import UNetConfig
 from tem_analysis_pipeline.configuration.validation import (
     ConfigValidator,
     ValidationLevel,
 )
+from tem_analysis_pipeline.model.base import BaseModelConfig
+from tem_analysis_pipeline.model.unet import UNetConfig
 
 
 class TestConfigurationBase:

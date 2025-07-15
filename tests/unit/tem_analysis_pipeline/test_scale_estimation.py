@@ -9,11 +9,11 @@ import pytest
 from PIL import Image
 
 from tem_analysis_pipeline.scale_estimation import (
+    InvalidInputError,
     NoScaleFoundError,
     ScaleBarReader,
     ScaleEstimationError,
     ScaleManager,
-    InvalidInputError,
 )
 
 

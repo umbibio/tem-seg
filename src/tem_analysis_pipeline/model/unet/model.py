@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING
 from tensorflow import Tensor
 from tensorflow.keras import Model
 
-from .config import UNetConfig
 from ..base import BaseModel
+from .config import UNetConfig
 
 if TYPE_CHECKING:
     from keras.src.layers import (

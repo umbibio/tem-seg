@@ -62,13 +62,14 @@ def create_scale_app() -> typer.Typer:
         it will process all of them and optionally save the results to a CSV file.
         """
         import csv
-        import traceback
         import sys
+        import traceback
+
         from ..scale_estimation import (
-            ScaleEstimationError,
+            InvalidInputError,
             NoScaleFoundError,
             ScaleDetectionFailureError,
-            InvalidInputError,
+            ScaleEstimationError,
         )
 
         # Override print function in calibration module if debug is enabled

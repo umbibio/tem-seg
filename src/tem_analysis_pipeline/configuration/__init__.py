@@ -6,10 +6,10 @@ managing settings throughout the TEM-Seg application.
 
 from tem_analysis_pipeline.configuration.config import (
     ConfigurationBase,
-    WorkflowConfig,
-    TrainingConfig,
-    PredictionConfig,
     OrganelleType,
+    PredictionConfig,
+    TrainingConfig,
+    WorkflowConfig,
 )
 
 # Import BaseModelConfig from the model module

@@ -148,10 +148,10 @@ class ScaleBarReader(ScaleEstimator):
             ScaleDetectionFailureError: If scale bar detection fails.
         """
         from .calibration import (
-            get_calibration,
             NoScaleError,
             NoScaleNumberError,
             NoScaleUnitError,
+            get_calibration,
         )
 
         img = self._convert_to_pil(image_input)

@@ -4,8 +4,8 @@ These tests verify that the CLI commands work correctly, including
 the restructured CLI with v1 subcommand and the new scale commands.
 """
 
-import os
 import csv
+import os
 import tempfile
 from pathlib import Path
 
@@ -13,7 +13,6 @@ import pytest
 from typer.testing import CliRunner
 
 from tem_analysis_pipeline.cmd import app
-
 
 # Get the project root directory
 PROJECT_ROOT = Path(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))

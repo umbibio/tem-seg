@@ -8,16 +8,13 @@ import os
 from pathlib import Path
 
 import pytest
-from PIL import Image
 
 from tem_analysis_pipeline.scale_estimation import (
     NoScaleFoundError,
     ScaleBarReader,
-    ScaleDetectionFailureError,
     ScaleEstimationError,
     ScaleManager,
 )
-
 
 # Get the project root directory
 PROJECT_ROOT = Path(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
