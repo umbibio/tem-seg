@@ -20,7 +20,7 @@ PROJECT_ROOT = Path(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 # Paths to raw data directories
 SAMPLE_DIRS = [
     PROJECT_ROOT / "raw-data" / "HCI-010" / "slide-images",
-    PROJECT_ROOT / "raw-data" / "DRP1-KO" / "slide-images"
+    PROJECT_ROOT / "raw-data" / "DRP1-KO" / "slide-images",
 ]
 # Sample TIF files for testing
 SAMPLE_IMAGES = [
@@ -53,7 +53,7 @@ def test_cli_structure(runner):
     legacy_commands = ["train", "predict", "analyze", "consolidate", "preprocess"]
     for cmd in legacy_commands:
         assert cmd in result.stdout
-    
+
     # Test scale subcommand existence
     result = runner.invoke(app, ["scale", "--help"])
     assert result.exit_code == 0
@@ -67,9 +67,9 @@ def test_scale_get_scale_basic(runner):
     # Skip if image doesn't exist (CI environment might not have sample data)
     if not sample_image.exists():
         pytest.skip(f"Test image not found: {sample_image}")
-    
+
     result = runner.invoke(app, ["scale", "get-scale", str(sample_image)])
-    
+
     assert result.exit_code == 0
     # Check if scale was detected (should contain μm/pixel)
     assert "μm/pixel" in result.stdout
@@ -83,13 +83,12 @@ def test_scale_get_scale_fallback(runner):
     # Skip if image doesn't exist
     if not sample_image.exists():
         pytest.skip(f"Test image not found: {sample_image}")
-    
+
     fallback = 0.005
-    result = runner.invoke(app, [
-        "scale", "get-scale", str(sample_image), 
-        "--fallback", str(fallback)
-    ])
-    
+    result = runner.invoke(
+        app, ["scale", "get-scale", str(sample_image), "--fallback", str(fallback)]
+    )
+
     assert result.exit_code == 0
     # If this image has no scale bar, we should get the fallback message
     if "Using fallback scale:" in result.stdout:
@@ -104,12 +103,11 @@ def test_scale_get_scale_skip_missing(runner):
     # Skip if image doesn't exist
     if not sample_image.exists():
         pytest.skip(f"Test image not found: {sample_image}")
-    
-    result = runner.invoke(app, [
-        "scale", "get-scale", str(sample_image), 
-        "--skip-missing"
-    ])
-    
+
+    result = runner.invoke(
+        app, ["scale", "get-scale", str(sample_image), "--skip-missing"]
+    )
+
     assert result.exit_code == 0
     # Check if the skip message is present
     if "skipping (--skip-missing enabled)" in result.stdout:
@@ -123,23 +121,22 @@ def test_scale_get_scale_csv_output(runner):
     # Skip if image doesn't exist
     if not sample_image.exists():
         pytest.skip(f"Test image not found: {sample_image}")
-    
+
     # Create a temporary file for CSV output
-    with tempfile.NamedTemporaryFile(suffix='.csv', delete=False) as temp_file:
+    with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as temp_file:
         temp_path = Path(temp_file.name)
-    
+
     try:
-        result = runner.invoke(app, [
-            "scale", "get-scale", str(sample_image),
-            "--output", str(temp_path)
-        ])
-        
+        result = runner.invoke(
+            app, ["scale", "get-scale", str(sample_image), "--output", str(temp_path)]
+        )
+
         assert result.exit_code == 0
         assert f"Results saved to {temp_path}" in result.stdout
-        
+
         # Check if CSV file was created and has the right format
         assert temp_path.exists()
-        with open(temp_path, 'r') as f:
+        with open(temp_path, "r") as f:
             csv_reader = csv.DictReader(f)
             rows = list(csv_reader)
             assert len(rows) == 1
@@ -158,20 +155,25 @@ def test_scale_get_scale_multiple_images(runner):
     sample_images = [img for img in SAMPLE_IMAGES if img.exists()]
     if not sample_images:
         pytest.skip("No test images found")
-    
+
     # Convert paths to strings for CLI command
     image_paths = [str(img) for img in sample_images]
-    
-    result = runner.invoke(app, [
-        "scale", "get-scale", *image_paths, 
-        "--verbose"  # Use verbose to get more output
-    ])
-    
+
+    result = runner.invoke(
+        app,
+        [
+            "scale",
+            "get-scale",
+            *image_paths,
+            "--verbose",  # Use verbose to get more output
+        ],
+    )
+
     assert result.exit_code == 0
     # Check for processing message for each image
     for img in sample_images:
         assert f"Processing {img}" in result.stdout
-    
+
     # Check for summary
     assert "Summary:" in result.stdout
     assert f"/{len(sample_images)}" in result.stdout
@@ -184,12 +186,9 @@ def test_scale_get_scale_debug_mode(runner):
     # Skip if image doesn't exist
     if not sample_image.exists():
         pytest.skip(f"Test image not found: {sample_image}")
-    
-    result = runner.invoke(app, [
-        "scale", "get-scale", str(sample_image),
-        "--debug"
-    ])
-    
+
+    result = runner.invoke(app, ["scale", "get-scale", str(sample_image), "--debug"])
+
     assert result.exit_code == 0
     # Check for debug output
     assert "[DEBUG]" in result.stdout
@@ -197,7 +196,7 @@ def test_scale_get_scale_debug_mode(runner):
     assert "Converting to grayscale if needed" in result.stdout
     assert "Attempting to detect scale bar" in result.stdout
     assert "[DEBUG] Scale bar detected successfully" in result.stdout
-    
+
     # Verify the command completed successfully with proper summary output
     assert "Scale detected:" in result.stdout
     assert "μm/pixel" in result.stdout
@@ -219,10 +218,8 @@ def test_missing_image_handling(runner):
     """Test that the CLI handles missing image files gracefully."""
     # Use a non-existent image path
     nonexistent_path = "nonexistent_image.tif"
-    
-    result = runner.invoke(app, [
-        "scale", "get-scale", nonexistent_path
-    ])
-    
+
+    result = runner.invoke(app, ["scale", "get-scale", nonexistent_path])
+
     assert result.exit_code == 0  # CLI should not crash
     assert "Error: Image file not found" in result.stdout
