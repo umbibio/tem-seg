@@ -32,6 +32,12 @@ def train_command(
         int,
         Option("--n-epochs-per-run", "-e", help="Number of epochs per training run"),
     ] = 1200,
+    model_type: Annotated[
+        str, Option("--model-type", "-m", help="Type of model to train ('unet' or 'unet++')")
+    ] = "unet",
+    deep_supervision: Annotated[
+        bool, Option("--deep-supervision", "-d", help="Use deep supervision in UNet++")
+    ] = False,
 ) -> None:
     """Train a U-Net model for semantic segmentation of TEM images."""
     from ._train import train
@@ -44,6 +50,8 @@ def train_command(
         shuffle_training,
         batch_size,
         n_epochs_per_run,
+        model_type,
+        deep_supervision,
     )
 
 

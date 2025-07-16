@@ -188,9 +188,12 @@ def train(
     shuffle_training: bool = False,
     batch_size: int | None = None,
     n_epochs_per_run: int = 1200,
+    model_type: Literal["unet", "unet++"] = "unet",
+    deep_supervision: bool = False,
 ) -> None:
     """Train a U-Net model for semantic segmentation of TEM images."""
     from ..model._unet import make_unet
+    from ..model._unetplusplus import make_unet_plus_plus
     from ..model.config import config
     from ..model.custom_objects import custom_objects
     from ..model.losses import MyWeightedBinaryCrossEntropy
@@ -247,13 +250,26 @@ def train(
     else:
         initial_epoch = 0
         # building the model
-        model = make_unet(
+        if model_type == "unet++":
+            model = make_unet_plus_plus(
+                input_shape=(*tile_shape,1),
+                num_classes=2,
+                dropout_rate=0.1,
+                deep_supervision=deep_supervision
+            )
+        else:
+            model = make_unet(
             tile_shape, channels=1, layer_depth=layer_depth, filters_root=filters_root
-        )
+            )
 
-        loss = MyWeightedBinaryCrossEntropy(pos_weight=loss_pos_weight)
         f1_score_metric = MyF1Score(name="f1_score", threshold=0.5)
         f2_score_metric = MyF2Score(name="f2_score", threshold=0.5)
+        if model_type == "unet++" and deep_supervision:
+            loss = [MyWeightedBinaryCrossEntropy(pos_weight=loss_pos_weight)] * 3
+            metrics = [["Recall", f1_score_metric, f2_score_metric]] * 3
+        else:
+            loss = MyWeightedBinaryCrossEntropy(pos_weight=loss_pos_weight)
+            metrics = ["Recall", f1_score_metric, f2_score_metric]
 
         model.compile(
             loss=loss,
