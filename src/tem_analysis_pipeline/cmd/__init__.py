@@ -141,7 +141,9 @@ def analyze_command(
 
 @app.command("consolidate")
 def consolidate_command(
-    study_name: Annotated[str, Argument(help="Name of the study to consolidate results for")],
+    study_name: Annotated[
+        str, Argument(help="Name of the study to consolidate results for")
+    ],
     model_name: Annotated[
         str,
         Option(

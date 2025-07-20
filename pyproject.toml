@@ -4,7 +4,7 @@ version = "0.3.1.dev0"
 description = "Codebase for the analysis of mitochondria morphology using semantic segmentation on TEM images."
 readme = "README.md"
 authors = [
-    { name = "Argenis Arriojas", email = "arriojasmaldonado001@umb.edu" }
+    { name = "Argenis Arriojas", email = "arriojasmaldonado001@umb.edu" },
 ]
 requires-python = ">=3.12,<3.13"
 dependencies = [
@@ -35,4 +35,6 @@ build-backend = "flit_core.buildapi"
 [dependency-groups]
 dev = [
     "bump-my-version>=1.1.4",
+    "pytest>=8.4.1",
+    "ruff>=0.12.4",
 ]
