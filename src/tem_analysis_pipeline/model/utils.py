@@ -9,19 +9,15 @@ from PIL import Image, ImageFilter
 def compute_output_size(input_size=316, layer_depth=5, return_all=False):
     output_size = input_size
     for i in range(layer_depth - 1):
-        # print(output_size, end=' ')
         output_size -= 4
-        assert output_size % 2 == 0, "Found layer with odd size. True again"
-        output_size /= 2
+        output_size //= 2
 
     mid_size = output_size
     for i in range(layer_depth - 1):
-        # print(output_size, end=' ')
         output_size -= 4
         output_size *= 2
 
     output_size -= 4
-    # print(output_size)
 
     if return_all:
         return int(input_size), int(mid_size), int(output_size)

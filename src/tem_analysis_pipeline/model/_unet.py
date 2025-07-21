@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING
 
 from tensorflow import Tensor
-from tensorflow.keras import Model
 
 if TYPE_CHECKING:
+    from keras import Model
     from keras.src.layers import (
         Activation,
         BatchNormalization,
@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     )
 
 else:
+    from tensorflow.keras import Model
     from tensorflow.keras.layers import (
         Activation,
         BatchNormalization,
@@ -59,8 +60,12 @@ def get_upconv(x: Tensor, copy: Tensor, filters: int, stage: str) -> Tensor:
     x = LeakyReLU(negative_slope=0.2)(x)
 
     ver_pad = (copy.shape[1] - x.shape[1]) // 2
+    ver_res = (copy.shape[1] - x.shape[1]) % 2
     hor_pad = (copy.shape[2] - x.shape[2]) // 2
-    paste = Cropping2D((ver_pad, hor_pad), name=f"{stage}_paste")(copy)
+    hor_res = (copy.shape[2] - x.shape[2]) % 2
+
+    crop = ((ver_pad, ver_pad + ver_res), (hor_pad, hor_pad + hor_res))
+    paste = Cropping2D(crop, name=f"{stage}_paste")(copy)
     x = Concatenate(name=f"{stage}_input")([paste, x])
     return x
 
