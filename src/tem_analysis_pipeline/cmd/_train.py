@@ -184,6 +184,8 @@ def get_dataset(
 
 def train(
     dataset_name: str,
+    model_architecture: str = "unet",
+    models_folder: str | None = None,
     organelle: Literal["cell", "mitochondria", "nucleus"] = "mitochondria",
     fold_n: int = 1,
     total_folds: int = 1,
@@ -195,8 +197,6 @@ def train(
     data_dirpath: str | Path = "data",
 ) -> None:
     """Train a U-Net model for semantic segmentation of TEM images."""
-    from ..model._unet import make_unet
-    from ..model.config import config
     from ..model.custom_objects import custom_objects
     from ..model.losses import MyWeightedBinaryCrossEntropy
     from ..model.metrics import (
@@ -204,10 +204,23 @@ def train(
         MyF2Score,
     )
 
+    match model_architecture:
+        case "unet":
+            from ..model.unet import make_unet as make_model
+            from ..model.unet import unet_config as config
+
+        case _:
+            raise ValueError(f"Unknown model architecture: {model_architecture}")
+
+    if models_folder is None:
+        models_folder = "models"
+
     if total_folds > 1:
-        working_dir = Path(f"models/{total_folds}-fold_cross_validation")
+        working_dir = Path(
+            f"{models_folder}/{model_architecture}/{total_folds}-fold_cross_validation"
+        )
     else:
-        working_dir = Path("models/single_fold")
+        working_dir = Path(f"{models_folder}/{model_architecture}/single_fold")
     working_dir = working_dir / dataset_name / organelle / f"kf{fold_n:02d}"
     working_dir.mkdir(parents=True, exist_ok=True)
 
@@ -254,7 +267,7 @@ def train(
     else:
         initial_epoch = 0
         # building the model
-        model = make_unet(
+        model = make_model(
             tile_shape, channels=1, layer_depth=layer_depth, filters_root=filters_root
         )
 

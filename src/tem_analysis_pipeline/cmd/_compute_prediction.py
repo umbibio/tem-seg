@@ -12,6 +12,7 @@ from tem_analysis_pipeline.calibration import (
 
 def compute_prediction(
     filepaths: list[Path],
+    model_architecture: Literal["unet", "unetpp"],
     model_version: str,
     organelle: str,
     force_prediction: bool = False,
@@ -34,7 +35,8 @@ def compute_prediction(
     from ..model.config import config
 
     prediction_tools.select_model_version(
-        model_version,
+        model_architecture=model_architecture,
+        model_version=model_version,
         models_folder=models_folder,
         use_ensemble=use_ensemble,
         cross_validation_kfolds=cross_validation_kfolds,
@@ -42,7 +44,7 @@ def compute_prediction(
 
     trg_scale = config[organelle]["target_scale"]
 
-    model_name = model_version
+    model_name = f"{model_architecture}_{model_version}"
     if use_ensemble:
         model_name += f"_k{cross_validation_kfolds}"
 

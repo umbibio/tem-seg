@@ -15,6 +15,13 @@ app = typer.Typer(
 @app.command("train")
 def train_command(
     dataset_name: Annotated[str, Argument(help="Name of the dataset to train on")],
+    model_architecture: Annotated[
+        str, Option("--model-architecture", "-a", help="Architecture of the model")
+    ] = "unet",
+    models_folder: Annotated[
+        Path | None,
+        Option("--models-folder", "-m", help="Optional folder containing models"),
+    ] = None,
     organelle: Annotated[
         str, Option("--organelle", "-o", help="Target organelle for segmentation")
     ] = "mitochondria",
@@ -48,6 +55,8 @@ def train_command(
 
     train(
         dataset_name=dataset_name,
+        model_architecture=model_architecture,
+        models_folder=models_folder,
         organelle=organelle,
         fold_n=fold_n,
         total_folds=total_folds,
@@ -63,6 +72,9 @@ def train_command(
 @app.command("predict")
 def predict_command(
     filepaths: Annotated[List[Path], Argument(help="Paths to the image files")],
+    model_architecture: Annotated[
+        str, Option("--model-architecture", "-a", help="Architecture of the model")
+    ] = "Mixture",
     model_version: Annotated[
         str, Option("--model-version", "-v", help="Version of the model to use")
     ] = "Mixture",
@@ -95,6 +107,7 @@ def predict_command(
 
     compute_prediction(
         filepaths=filepaths,
+        model_architecture=model_architecture,
         model_version=model_version,
         organelle=organelle,
         force_prediction=force_prediction,

@@ -1,5 +1,6 @@
 import itertools
 from pathlib import Path
+from typing import Literal
 
 import cv2
 import numpy as np
@@ -12,6 +13,7 @@ CONFIG = {}
 
 
 def select_model_version(
+    model_architecture: Literal["unet", "unetpp"],
     model_version: str,
     *,
     models_folder: str | Path = None,
@@ -19,9 +21,9 @@ def select_model_version(
     cross_validation_kfolds: int | None = None,
 ):
     if models_folder is not None:
-        models_folder = Path(models_folder)
+        models_folder = Path(models_folder) / model_architecture
     else:
-        models_folder = Path("models")
+        models_folder = Path("models") / model_architecture
 
     if use_ensemble:
         assert cross_validation_kfolds is not None

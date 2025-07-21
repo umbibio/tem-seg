@@ -1,4 +1,4 @@
-from .utils import compute_output_size
+from ..utils import compute_output_size
 
 common_config = dict(
     tile_shape=(444, 444),
@@ -11,7 +11,7 @@ common_config = dict(
     filters_root=16,
 )
 
-config = {
+unet_config = {
     "cell": {
         **common_config,
         "fraction_of_empty_to_keep": 1.0,
@@ -28,12 +28,14 @@ config = {
     },
 }
 
-for organelle, params in config.items():
+for organelle, params in unet_config.items():
     params["window_shape"] = (
         compute_output_size(
-            input_size=params["tile_shape"][0], layer_depth=params["layer_depth"]
+            input_size=params["tile_shape"][0],
+            layer_depth=params["layer_depth"],
         ),
         compute_output_size(
-            input_size=params["tile_shape"][1], layer_depth=params["layer_depth"]
+            input_size=params["tile_shape"][1],
+            layer_depth=params["layer_depth"],
         ),
     )
