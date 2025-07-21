@@ -160,6 +160,7 @@ def get_dataset(
 
         if num_validation_elements > 0:
             validation_dataset = validation_dataset.map(_label_crop_fn, **params)
+            validation_dataset = validation_dataset.repeat()
             validation_dataset = validation_dataset.batch(batch_size)
             validation_dataset = validation_dataset.prefetch(tf.data.AUTOTUNE)
         else:
