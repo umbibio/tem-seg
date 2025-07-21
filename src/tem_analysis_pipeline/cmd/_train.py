@@ -209,6 +209,10 @@ def train(
             from ..model.unet import make_unet as make_model
             from ..model.unet import unet_config as config
 
+        case "unetpp":
+            from ..model.unetpp import make_unetpp as make_model
+            from ..model.unetpp import unetpp_config as config
+
         case _:
             raise ValueError(f"Unknown model architecture: {model_architecture}")
 

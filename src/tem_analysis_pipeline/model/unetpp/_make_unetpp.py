@@ -73,12 +73,11 @@ def _crop_and_concat(x: Tensor, copy: Tensor, stage: str) -> Tensor:
     return x
 
 
-def make_unet_plusplus(
+def make_unetpp(
     tile_shape: tuple[int, int],
     channels: int,
     layer_depth: int = 5,
     filters_root: int = 16,
-    deep_supervision: bool = True,
 ) -> Model:
     input_shape = tile_shape + (channels,)
 
@@ -148,22 +147,11 @@ def make_unet_plusplus(
             )
 
     # Output layers
-    if deep_supervision:
-        # Create outputs at different scales
-        outputs = []
-        for j in range(1, layer_depth):
-            out = Conv2D(1, 1, name=f"final_conv_{j}")(X[0, j])
-            out = Activation("sigmoid", dtype="float32", name=f"output_{j}")(out)
-            outputs.append(out)
+    # Single output from the final nested block
+    output = Conv2D(1, 1, name="final_conv")(X[0, layer_depth - 1])
+    output = Activation("sigmoid", dtype="float32", name="output")(output)
 
-        # Define the model with multiple outputs
-        model = Model(input, outputs)
-    else:
-        # Single output from the final nested block
-        output = Conv2D(1, 1, name="final_conv")(X[0, layer_depth - 1])
-        output = Activation("sigmoid", dtype="float32", name="output")(output)
-
-        # Define the model
-        model = Model(input, output)
+    # Define the model
+    model = Model(input, output)
 
     return model
