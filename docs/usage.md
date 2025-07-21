@@ -27,6 +27,8 @@ tem-seg train \
     --shuffle-training \
     --batch-size 16 \
     --n-epochs-per-run 1200
+    --model_type unet \
+    --deep_supervision
 ```
 
 #### Parameters
@@ -39,6 +41,8 @@ The training process can be customized with the following parameters:
 - `shuffle_training`: Whether to shuffle the training data
 - `batch_size`: Batch size for training
 - `n_epochs_per_run`: Number of epochs per training run
+- `model_type`: type of model used
+- `deep_supervision`: whether to use deep supervision for the unet++ model
 
 
 The output files will have the following structure:
