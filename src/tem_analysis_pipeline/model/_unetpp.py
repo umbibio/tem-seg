@@ -38,14 +38,14 @@ else:
 def _get_conv_block(x: Tensor, filters: int, dropout_rate: float, stage: str) -> Tensor:
     kernel_size = 3
 
-    x = Conv2D(filters, kernel_size, padding="same", name=f"{stage}_conv1")(x)
+    x = Conv2D(filters, kernel_size, name=f"{stage}_conv1")(x)
     x = LeakyReLU(negative_slope=0.2)(x)
 
     if dropout_rate > 0.0:
         x = SpatialDropout2D(dropout_rate, name=f"{stage}_drop1")(x)
     x = BatchNormalization(name=f"{stage}_bnor1")(x)
 
-    x = Conv2D(filters, kernel_size, padding="same", name=f"{stage}_conv2")(x)
+    x = Conv2D(filters, kernel_size, name=f"{stage}_conv2")(x)
     x = LeakyReLU(negative_slope=0.2)(x)
 
     if dropout_rate > 0.0:
@@ -109,8 +109,8 @@ def make_unet_plusplus(
     concat_list: list[Tensor]
 
     # Build nested skip pathways
-    for i in range(layer_depth - 1):
-        for j in range(1, layer_depth - i):
+    for j in range(1, layer_depth):
+        for i in range(layer_depth - j):
             # Collect all incoming connections
             up = _get_upconv(X[i + 1, j - 1], filter_list[i], stage=f"up_{i}_{j}")
 
