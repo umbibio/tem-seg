@@ -25,9 +25,16 @@ def train_command(
     shuffle_training: Annotated[
         bool, Option("--shuffle-training", "-s", help="Shuffle training data")
     ] = False,
+    buffer_size: Annotated[
+        int,
+        Option("--buffer-size", help="Buffer size for shuffling training data"),
+    ] = 1000,
     batch_size: Annotated[
         int | None, Option("--batch-size", "-b", help="Batch size")
     ] = None,
+    cache: Annotated[
+        bool, Option("--cache", "-c", help="Cache TFRecords in memory")
+    ] = False,
     n_epochs_per_run: Annotated[
         int,
         Option("--n-epochs-per-run", "-e", help="Number of epochs per training run"),
@@ -40,14 +47,16 @@ def train_command(
     from ._train import train
 
     train(
-        dataset_name,
-        organelle,
-        fold_n,
-        total_folds,
-        shuffle_training,
-        batch_size,
-        n_epochs_per_run,
-        data_dirpath,
+        dataset_name=dataset_name,
+        organelle=organelle,
+        fold_n=fold_n,
+        total_folds=total_folds,
+        shuffle_training=shuffle_training,
+        buffer_size=buffer_size,
+        batch_size=batch_size,
+        cache=cache,
+        n_epochs_per_run=n_epochs_per_run,
+        data_dirpath=data_dirpath,
     )
 
 

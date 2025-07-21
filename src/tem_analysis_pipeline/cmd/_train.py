@@ -82,7 +82,8 @@ def get_dataset(
     total_folds: int = 1,
     fraction_of_empty_to_keep: float = 1.0,
     shuffle: bool = True,
-    random_state: int = 42,
+    buffer_size: int = 5_000,
+    cache: bool = False,
     data_dirpath: str | Path = "data",
 ) -> Dataset | tuple[Dataset, Dataset | None]:
     from ..model.utils import (
@@ -113,7 +114,8 @@ def get_dataset(
     dataset = files.interleave(_load_tfrecord_dataset, deterministic=True, **params)
     dataset = dataset.map(read_tfrecord, **params)
     dataset = dataset.map(set_tile_shape(tile_shape), **params)
-    dataset = dataset.cache()
+    if cache:
+        dataset = dataset.cache()
 
     _label_crop_fn = crop_labels_to_shape(window_shape)
 
@@ -123,11 +125,6 @@ def get_dataset(
                 keep_fraction_of_empty_labels(fraction_of_empty_to_keep)
             )
 
-        num_elements = dataset.reduce(
-            tf.constant(0, dtype=tf.int64), lambda x, _: x + 1
-        )
-        print(f"Number of elements: {num_elements}")
-        dataset = dataset.shuffle(buffer_size=num_elements, seed=random_state)
         dataset = dataset.enumerate()
 
         def is_validation(index, data):
@@ -142,17 +139,18 @@ def get_dataset(
         num_training_elements = training_dataset.reduce(
             tf.constant(0, dtype=tf.int64), lambda x, _: x + 1
         ).numpy()
-        print(f"Number of training elements: {num_training_elements}")
+        print(f"Number of training elements: {num_training_elements}", flush=True)
 
         num_validation_elements = validation_dataset.reduce(
             tf.constant(0, dtype=tf.int64), lambda x, _: x + 1
         ).numpy()
-        print(f"Number of validation elements: {num_validation_elements}")
+        print(f"Number of validation elements: {num_validation_elements}", flush=True)
 
         training_dataset = training_dataset.map(random_flip_and_rotation, **params)
         training_dataset = training_dataset.map(random_image_adjust, **params)
         if shuffle:
-            training_dataset = training_dataset.shuffle(buffer_size=batch_size * 2)
+            print(f"Shuffling training data. Buffer size: {buffer_size}", flush=True)
+            training_dataset = training_dataset.shuffle(buffer_size=buffer_size)
 
         training_dataset = training_dataset.map(_label_crop_fn, **params)
         training_dataset = training_dataset.repeat()
@@ -188,7 +186,9 @@ def train(
     fold_n: int = 1,
     total_folds: int = 1,
     shuffle_training: bool = False,
+    buffer_size: int = 5_000,
     batch_size: int | None = None,
+    cache: bool = False,
     n_epochs_per_run: int = 1200,
     data_dirpath: str | Path = "data",
 ) -> None:
@@ -235,7 +235,8 @@ def train(
         total_folds=total_folds,
         fraction_of_empty_to_keep=fraction_of_empty_to_keep,
         shuffle=shuffle_training,
-        random_state=42,
+        buffer_size=buffer_size,
+        cache=cache,
         data_dirpath=data_dirpath,
     )
     steps_per_epoch = n_train // batch_size
@@ -261,7 +262,7 @@ def train(
 
         model.compile(
             loss=loss,
-            optimizer="adam",
+            optimizer="adamw",
             metrics=[
                 "Recall",
                 f1_score_metric,
