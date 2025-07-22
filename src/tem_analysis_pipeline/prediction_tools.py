@@ -10,6 +10,20 @@ from .calibration import fix_image_scale
 
 CONFIG = {}
 
+def extract_input_shape(model):
+    inp = getattr(model, "input", None)
+    if isinstance(inp, list):
+        return inp[0].shape[1:]
+    elif inp is not None:
+        return inp.shape[1:]
+    elif hasattr(model, "input_layer"):
+        inp_layer = model.input_layer
+        if isinstance(inp_layer, list):
+            return inp_layer[0].shape[1:]
+        else:
+            return inp_layer.shape[1:]
+    else:
+        raise ValueError("Model has no valid input")
 
 def select_model_version(
     model_version: str,
@@ -43,12 +57,7 @@ def build_ensemble(models):
     from .model.custom_objects import MyMeanDSC, MyMeanIoU, MyWeightedBinaryCrossEntropy
 
     m = models[0]
-    if hasattr(m, "input"):
-        input_shape = m.input.shape[1:]
-    elif hasattr(m, "input_layer"):
-        input_shape = m.input_layer.shape[1:]
-    else:
-        raise ValueError("Model has no valid input")
+    input_shape = extract_input_shape(m)
 
     inputs = tf.keras.Input(shape=input_shape)
     for model in models:
