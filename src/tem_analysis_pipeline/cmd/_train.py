@@ -195,6 +195,7 @@ def train(
     cache: bool = False,
     n_epochs_per_run: int = 1200,
     data_dirpath: str | Path = "data",
+    verbose: str | int = 2,
 ) -> None:
     """Train a U-Net model for semantic segmentation of TEM images."""
     from ..model.custom_objects import custom_objects
@@ -206,10 +207,12 @@ def train(
 
     match model_architecture:
         case "unet":
+            print("Using U-Net architecture")
             from ..model.unet import make_unet as make_model
             from ..model.unet import unet_config as config
 
         case "unetpp":
+            print("Using U-Net++ architecture")
             from ..model.unetpp import make_unetpp as make_model
             from ..model.unetpp import unetpp_config as config
 
@@ -226,6 +229,7 @@ def train(
     else:
         working_dir = Path(f"{models_folder}/{model_architecture}/single_fold")
     working_dir = working_dir / dataset_name / organelle / f"kf{fold_n:02d}"
+    print(f"Working directory: {working_dir}")
     working_dir.mkdir(parents=True, exist_ok=True)
 
     if organelle not in config.keys():
@@ -318,7 +322,7 @@ def train(
                 else []
             ),
         ],
-        verbose=1,
+        verbose=verbose,
     )
     final_epoch = initial_epoch + len(history.history["loss"])
 

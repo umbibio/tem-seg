@@ -49,6 +49,7 @@ def train_command(
     data_dirpath: Annotated[
         str, Option("--data-dirpath", "-d", help="Path to save TFRecords")
     ] = "data",
+    verbose: Annotated[int, Option("--verbose", "-v", help="Verbose output")] = 2,
 ) -> None:
     """Train a U-Net model for semantic segmentation of TEM images."""
     from ._train import train
@@ -66,6 +67,7 @@ def train_command(
         cache=cache,
         n_epochs_per_run=n_epochs_per_run,
         data_dirpath=data_dirpath,
+        verbose=verbose,
     )
 
 
