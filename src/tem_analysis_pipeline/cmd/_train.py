@@ -146,12 +146,13 @@ def get_dataset(
         ).numpy()
         print(f"Number of validation elements: {num_validation_elements}", flush=True)
 
-        training_dataset = training_dataset.map(random_flip_and_rotation, **params)
-        training_dataset = training_dataset.map(random_image_adjust, **params)
         if shuffle:
             buffer_size = num_training_elements if buffer_size < 0 else buffer_size
             print(f"Shuffling training data. Buffer size: {buffer_size}", flush=True)
             training_dataset = training_dataset.shuffle(buffer_size=buffer_size)
+
+        training_dataset = training_dataset.map(random_flip_and_rotation, **params)
+        training_dataset = training_dataset.map(random_image_adjust, **params)
 
         training_dataset = training_dataset.map(_label_crop_fn, **params)
         training_dataset = training_dataset.repeat()

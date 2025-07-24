@@ -45,7 +45,9 @@ def build_ensemble(models):
     from .model.custom_objects import MyMeanDSC, MyMeanIoU, MyWeightedBinaryCrossEntropy
 
     m = models[0]
-    if hasattr(m, "input"):
+    if hasattr(m, "input_shape"):
+        input_shape = m.input_shape[1:]
+    elif hasattr(m, "input"):
         input_shape = m.input.shape[1:]
     elif hasattr(m, "input_layer"):
         input_shape = m.input_layer.shape[1:]

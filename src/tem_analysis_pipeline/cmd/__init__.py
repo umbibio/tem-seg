@@ -76,7 +76,7 @@ def predict_command(
     filepaths: Annotated[List[Path], Argument(help="Paths to the image files")],
     model_architecture: Annotated[
         str, Option("--model-architecture", "-a", help="Architecture of the model")
-    ] = "Mixture",
+    ] = "unet",
     model_version: Annotated[
         str, Option("--model-version", "-v", help="Version of the model to use")
     ] = "Mixture",

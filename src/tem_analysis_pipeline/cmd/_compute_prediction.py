@@ -32,7 +32,17 @@ def compute_prediction(
         models_folder: Optional folder containing the models
         use_ensemble: Whether to use ensemble model
     """
-    from ..model.config import config
+    match model_architecture:
+        case "unet":
+            print("Using U-Net architecture")
+            from ..model.unet import unet_config as config
+
+        case "unetpp":
+            print("Using U-Net++ architecture")
+            from ..model.unetpp import unetpp_config as config
+
+        case _:
+            raise ValueError(f"Unknown model architecture: {model_architecture}")
 
     prediction_tools.select_model_version(
         model_architecture=model_architecture,
