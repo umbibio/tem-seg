@@ -20,7 +20,7 @@ wheels/
 models*
 
 # data
-data
+data*
 studies
 *.tfrecord
 
