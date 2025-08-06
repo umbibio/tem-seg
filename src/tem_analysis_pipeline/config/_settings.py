@@ -2,6 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from ._assets_config import AssetsConfig
 from ._config import CONFIG_FILES
+from ._environment_config import EnvironmentConfig
 from ._utils import load_config_files
 
 __all__ = [
@@ -14,6 +15,7 @@ class Settings(BaseSettings):
     """Main application settings."""
 
     assets: AssetsConfig
+    environment: EnvironmentConfig
 
     model_config = SettingsConfigDict(
         # Environment variable settings
