@@ -1,0 +1,7 @@
+[assets.model_weights]
+mirrors = [
+    "https://zenodo.org/records/15602446/files/tem-seg-models_v1.0.0.tar.gz?download=1",
+]
+filename = "tem-seg-models_v1.0.0.tar.gz"
+sha256 = "525635b333bbbcac3e355bc306f39f7f270ac8398c7f69a114085b385199cb92"
+md5 = "454cd082fa1d0dbac129d717f6a90341"

@@ -198,7 +198,7 @@ def make_tfrecords(
     random_state: int = 42,
     data_dirpath: str | Path = "data",
 ) -> None:
-    from ..model.config import config
+    from ..model.unet._unet_config import unet_config as config
 
     data_dirpath = Path(data_dirpath)
     output_dirpath = data_dirpath / dataset_name
