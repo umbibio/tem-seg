@@ -3,12 +3,13 @@ from typing import List
 
 from pydantic import BaseModel, Field, field_validator
 
-from ._config import MODULE_PATH
+from ._config import TEM_SEG_LOCAL_PATH
 
 
 class ModelWeightsConfig(BaseModel):
     """Configuration for model weights."""
 
+    version: str = Field(..., description="Version of the model weights")
     mirrors: List[str] = Field(..., description="List of mirror URLs for downloading")
     filename: str = Field(..., description="Filename of the model weights")
     md5: str = Field(..., min_length=32, max_length=32, description="MD5 hash")
@@ -33,7 +34,7 @@ class AssetsConfig(BaseModel):
     """Configuration for assets."""
 
     path: str = Field(
-        default=(MODULE_PATH / "assets").as_posix(),
+        default=(TEM_SEG_LOCAL_PATH / "assets").as_posix(),
         description="Path to assets directory",
     )
     model_weights: ModelWeightsConfig

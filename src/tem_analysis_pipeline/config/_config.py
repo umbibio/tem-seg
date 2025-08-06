@@ -1,12 +1,15 @@
 from pathlib import Path
 
 __all__ = [
-    "MODULE_PATH",
-    "DEFAULT_SETTINGS_PATH",
     "CONFIG_FILES",
+    "DEFAULT_SETTINGS_PATH",
+    "MODULE_PATH",
+    "TEM_SEG_LOCAL_PATH",
 ]
 
 MODULE_PATH = Path(__file__).parent.parent
+
+TEM_SEG_LOCAL_PATH = Path("~/.tem-seg").expanduser()
 
 DEFAULT_SETTINGS_PATH = MODULE_PATH / "settings.toml"
 

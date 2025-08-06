@@ -6,7 +6,7 @@ from ..utils import download_and_extract
 
 def download_model_weights(assets_folder: str | Path | None = None) -> None:
     if assets_folder is None:
-        assets_folder = Path(settings.assets.path)
+        assets_folder = Path(settings.assets.path).expanduser()
     else:
         assets_folder = Path(assets_folder)
     assets_folder.mkdir(parents=True, exist_ok=True)

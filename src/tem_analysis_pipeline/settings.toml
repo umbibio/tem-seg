@@ -2,7 +2,11 @@
 debug = false
 tf_cpp_min_log_level = "2"
 
+[assets]
+path = "~/.tem-seg/assets"
+
 [assets.model_weights]
+version = "1.0.0"
 mirrors = [
     "https://zenodo.org/records/15602446/files/tem-seg-models_v1.0.0.tar.gz?download=1",
 ]
