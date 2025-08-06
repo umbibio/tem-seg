@@ -66,7 +66,10 @@ def build_ensemble(models):
         wrap = tf.keras.Model(inputs=inp, outputs=out, name=f"model_fold_{i + 1}")
 
         y = wrap(inputs)
-        ys.append(y)
+        if isinstance(y, list):
+            ys.extend(y)
+        else:
+            ys.append(y)
 
     x = layers.Average()(ys)
     outputs = layers.Lambda(backend.round)(x)
