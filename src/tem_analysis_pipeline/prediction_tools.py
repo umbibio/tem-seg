@@ -7,6 +7,7 @@ import numpy as np
 import scipy as sp
 from PIL import Image
 
+from .assets import get_models_folder
 from .calibration import fix_image_scale
 
 CONFIG = {}
@@ -23,7 +24,7 @@ def select_model_version(
     if models_folder is not None:
         models_folder = Path(models_folder) / model_architecture
     else:
-        models_folder = Path("models") / model_architecture
+        models_folder = get_models_folder(model_architecture, download=True)
 
     if use_ensemble:
         assert cross_validation_kfolds is not None
