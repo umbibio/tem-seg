@@ -245,5 +245,17 @@ def preprocess_tfrecords(
         )
 
 
+config_app = typer.Typer(help="Configure the pipeline")
+app.add_typer(config_app, name="config")
+
+
+@config_app.command("init")
+def init_config() -> None:
+    """Copy default configuration files to the current directory."""
+    from ._config import init_config
+
+    init_config()
+
+
 if __name__ == "__main__":
     app()
