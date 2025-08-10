@@ -1353,7 +1353,7 @@ wheels = [
 ]
 
 [[package]]
-name = "tem-analysis-pipeline"
+name = "tem-seg"
 version = "0.3.1.dev0"
 source = { editable = "." }
 dependencies = [

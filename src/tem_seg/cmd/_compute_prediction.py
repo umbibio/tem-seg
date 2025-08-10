@@ -2,8 +2,8 @@ import re
 from pathlib import Path
 from typing import Literal
 
-from tem_analysis_pipeline import prediction_tools
-from tem_analysis_pipeline.calibration import (
+from tem_seg import prediction_tools
+from tem_seg.calibration import (
     NoScaleError,
     NoScaleNumberError,
     NoScaleUnitError,
