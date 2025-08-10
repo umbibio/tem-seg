@@ -1,5 +1,5 @@
 import re
-from typing import List
+from typing import Dict, List
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -37,4 +37,13 @@ class AssetsConfig(BaseModel):
         default=(TEM_SEG_LOCAL_PATH / "assets").as_posix(),
         description="Path to assets directory",
     )
-    model_weights: ModelWeightsConfig
+    model_weights: Dict[
+        str,  # architecture
+        Dict[
+            str,  # name
+            Dict[
+                str,  # kind (single_fold, 5-fold_cross_validation)
+                ModelWeightsConfig,
+            ],
+        ],
+    ]

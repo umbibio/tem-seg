@@ -13,24 +13,29 @@ from tem_analysis_pipeline.calibration import (
 def compute_prediction(
     filepaths: list[Path],
     model_architecture: Literal["unet", "unetpp"],
-    model_version: str,
+    model_name: str,
     organelle: str,
     force_prediction: bool = False,
     models_folder: str | Path | None = None,
     use_ensemble: bool = False,
     checkpoint: Literal["last", "best_loss"] = "last",
     cross_validation_kfolds: int | None = None,
+    round_output: bool = False,
 ) -> None:
     """
     Compute predictions for the given image files using the specified model.
 
     Args:
         filepaths: List of paths to the image files to process
-        model_version: Version of the model to use
+        model_architecture: Architecture of the model
+        model_name: Name of the model to use
         organelle: Target organelle for the prediction
         force_prediction: Whether to force prediction even if output file exists
         models_folder: Optional folder containing the models
         use_ensemble: Whether to use ensemble model
+        checkpoint: Checkpoint to use
+        cross_validation_kfolds: Number of cross-validation folds
+        round_output: Whether to round the predictions
     """
     match model_architecture:
         case "unet":
@@ -46,7 +51,7 @@ def compute_prediction(
 
     prediction_tools.select_model_version(
         model_architecture=model_architecture,
-        model_version=model_version,
+        model_name=model_name,
         models_folder=models_folder,
         use_ensemble=use_ensemble,
         cross_validation_kfolds=cross_validation_kfolds,
@@ -54,11 +59,11 @@ def compute_prediction(
 
     trg_scale = config[organelle]["target_scale"]
 
-    model_name = f"{model_architecture}_{model_version}"
+    model_id = f"{model_architecture}_{model_name}"
     if use_ensemble:
-        model_name += f"_k{cross_validation_kfolds}"
+        model_id += f"_k{cross_validation_kfolds}"
 
-    predictions_basedir = Path("prediction") / model_name / organelle
+    predictions_basedir = Path("prediction") / model_id / organelle
 
     model = None
 
@@ -79,7 +84,7 @@ def compute_prediction(
 
             if model is None:
                 model = prediction_tools.get_organelle_ensemble_model(
-                    organelle, ckpt=checkpoint
+                    organelle, ckpt=checkpoint, round_output=round_output
                 )
 
             try:

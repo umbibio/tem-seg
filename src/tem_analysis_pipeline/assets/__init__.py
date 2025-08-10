@@ -1,6 +1,6 @@
-from ._download import download_model_weights, get_models_folder
+from ._download import download_model_weights, get_model_dir
 
 __all__ = [
     "download_model_weights",
-    "get_models_folder",
+    "get_model_dir",
 ]

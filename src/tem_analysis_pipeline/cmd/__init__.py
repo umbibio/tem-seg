@@ -77,8 +77,8 @@ def predict_command(
     model_architecture: Annotated[
         str, Option("--model-architecture", "-a", help="Architecture of the model")
     ] = "unet",
-    model_version: Annotated[
-        str, Option("--model-version", "-v", help="Version of the model to use")
+    model_name: Annotated[
+        str, Option("--model-name", "-n", help="Version of the model to use")
     ] = "Mixture",
     organelle: Annotated[
         str, Option("--organelle", "-o", help="Target organelle for prediction")
@@ -103,6 +103,10 @@ def predict_command(
         int | None,
         Option("--cross-validation-kfolds", "-k", help="Cross-validation k-folds"),
     ] = None,
+    round_output: Annotated[
+        bool,
+        Option("--round-output", "-r", help="Round output to nearest integer"),
+    ] = False,
 ) -> None:
     """Compute predictions for the given image files using the specified model."""
     from ._compute_prediction import compute_prediction
@@ -110,13 +114,14 @@ def predict_command(
     compute_prediction(
         filepaths=filepaths,
         model_architecture=model_architecture,
-        model_version=model_version,
+        model_name=model_name,
         organelle=organelle,
         force_prediction=force_prediction,
         models_folder=models_folder,
         use_ensemble=use_ensemble,
         checkpoint=checkpoint,
         cross_validation_kfolds=cross_validation_kfolds,
+        round_output=round_output,
     )
 
 

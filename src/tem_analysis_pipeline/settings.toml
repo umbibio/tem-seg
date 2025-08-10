@@ -5,11 +5,47 @@ tf_cpp_min_log_level = "2"
 [assets]
 path = "~/.tem-seg/assets"
 
-[assets.model_weights]
-version = "1.0.0"
+[assets.model_weights.unet.DRP1-KO.k5]
+version = "1.1.1"
 mirrors = [
-    "https://zenodo.org/records/15602446/files/tem-seg-models_v1.0.0.tar.gz?download=1",
+    "https://media.githubusercontent.com/media/umbibio/tem-seg/main/assets/tem-seg-models-unet-DRP1-KO-k5_v1.1.1.tar.gz",
 ]
-filename = "tem-seg-models_v1.0.0.tar.gz"
-sha256 = "525635b333bbbcac3e355bc306f39f7f270ac8398c7f69a114085b385199cb92"
-md5 = "454cd082fa1d0dbac129d717f6a90341"
+filename = "tem-seg-models-unet-DRP1-KO-k5_v1.1.1.tar.gz"
+sha256 = "4d5bb4c330ce301178d4bac3b09cdb44044dd7004d3285daf8dba469c3919e23"
+md5 = "31843def22b09d3c444d62dbfb057505"
+
+[assets.model_weights.unet.HCI-010.k5]
+version = "1.1.1"
+mirrors = [
+    "https://media.githubusercontent.com/media/umbibio/tem-seg/main/assets/tem-seg-models-unet-HCI-010-k5_v1.1.1.tar.gz",
+]
+filename = "tem-seg-models-unet-HCI-010-k5_v1.1.1.tar.gz"
+sha256 = "2de2a429fa4e5a1760c36301ce1f78897c674bf4b818e28dfb39001db7413f2a"
+md5 = "8fecc21009458c8030c92a0231a80af1"
+
+[assets.model_weights.unet.Mixture.k5]
+version = "1.1.1"
+mirrors = [
+    "https://media.githubusercontent.com/media/umbibio/tem-seg/main/assets/tem-seg-models-unet-Mixture-k5_v1.1.1.tar.gz",
+]
+filename = "tem-seg-models-unet-Mixture-k5_v1.1.1.tar.gz"
+sha256 = "4f8b9585e677f772c38fb5e0f26a940e0684532489ad32f762d0cb6089b7494b"
+md5 = "63548d3ded2a3e521435121f5703c7f6"
+
+[assets.model_weights.unet.PIM001-P.k5]
+version = "1.1.1"
+mirrors = [
+    "https://media.githubusercontent.com/media/umbibio/tem-seg/main/assets/tem-seg-models-unet-PIM001-P-k5_v1.1.1.tar.gz",
+]
+filename = "tem-seg-models-unet-PIM001-P-k5_v1.1.1.tar.gz"
+sha256 = "2933721225f29f5135835dafeb897565d7326d4a1a43072550d216abca11342d"
+md5 = "6033aa6000a23a053a14375082058018"
+
+[assets.model_weights.unetpp.Mixture.k5]
+version = "1.1.1"
+mirrors = [
+    "https://media.githubusercontent.com/media/umbibio/tem-seg/main/assets/tem-seg-models-unetpp-Mixture-k5_v1.1.1.tar.gz",
+]
+filename = "tem-seg-models-unetpp-Mixture-k5_v1.1.1.tar.gz"
+sha256 = "5892c00a1b8a11557f9607a93a496e1b4e4c0e30d81cdc32dd210f2846ad85ac"
+md5 = "804841a6e8dafaae9785e9889203807a"

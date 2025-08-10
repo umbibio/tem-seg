@@ -7,7 +7,7 @@ import numpy as np
 import scipy as sp
 from PIL import Image
 
-from .assets import get_models_folder
+from .assets import get_model_dir
 from .calibration import fix_image_scale
 
 CONFIG = {}
@@ -15,31 +15,36 @@ CONFIG = {}
 
 def select_model_version(
     model_architecture: Literal["unet", "unetpp"],
-    model_version: str,
+    model_name: str,
     *,
     models_folder: str | Path = None,
     use_ensemble: bool = False,
     cross_validation_kfolds: int | None = None,
 ):
-    if models_folder is not None:
-        models_folder = Path(models_folder) / model_architecture
-    else:
-        models_folder = get_models_folder(model_architecture, download=True)
-
     if use_ensemble:
         assert cross_validation_kfolds is not None
         k = cross_validation_kfolds
-        model_root = models_folder / f"{k}-fold_cross_validation" / model_version
+        model_kind = f"{k}-fold_cross_validation"
     else:
-        model_root = models_folder / "single_fold" / model_version
+        model_kind = "single_fold"
 
-    assert model_root.exists(), model_root
-    assert model_root.is_dir(), model_root
+    if models_folder is not None:
+        model_dir = Path(models_folder) / model_architecture / model_name / model_kind
+    else:
+        model_dir = get_model_dir(
+            model_architecture,
+            model_name,
+            model_kind,
+            download=True,
+        )
 
-    CONFIG["model_root"] = model_root
+    assert model_dir.exists(), model_dir
+    assert model_dir.is_dir(), model_dir
+
+    CONFIG["model_root"] = model_dir
 
 
-def build_ensemble(models):
+def build_ensemble(models, round_output=False):
     import tensorflow as tf
     from tensorflow.keras import backend, layers
 
@@ -71,8 +76,9 @@ def build_ensemble(models):
         else:
             ys.append(y)
 
-    x = layers.Average()(ys)
-    outputs = layers.Lambda(backend.round)(x)
+    outputs = layers.Average()(ys)
+    if round_output:
+        outputs = layers.Lambda(backend.round)(outputs)
 
     ensemble_model = tf.keras.Model(inputs=inputs, outputs=outputs)
 
@@ -128,18 +134,26 @@ def get_list_of_models(organelle, ckpt="last", round_output=False):
     filepaths = sorted(model_root.glob(f"{organelle}/kf??/ckpt/{ckpt}.keras"))
     if not filepaths:
         filepaths = sorted(model_root.glob(f"{organelle}/kf??/ckpt/{ckpt}.h5"))
-    return [load_nontrainable_model(p, round_output=round_output) for p in filepaths]
+    models = [load_nontrainable_model(p, round_output=round_output) for p in filepaths]
+    if len(models) == 0:
+        raise FileNotFoundError(f"No models found for {organelle}")
+
+    return models
 
 
-def get_organelle_ensemble_model(organelle, ckpt="last"):
+def get_organelle_ensemble_model(organelle, ckpt="last", round_output=False):
     models = get_list_of_models(organelle, ckpt=ckpt, round_output=False)
-    return build_ensemble(models)
+    return build_ensemble(models, round_output=round_output)
 
 
-def get_ensembles(organelles, ckpt="last"):
+def get_ensembles(organelles, ckpt="last", round_output=False):
     ensembles = {}
     for organelle in organelles:
-        ensembles[organelle] = get_organelle_ensemble_model(organelle, ckpt=ckpt)
+        ensembles[organelle] = get_organelle_ensemble_model(
+            organelle,
+            ckpt=ckpt,
+            round_output=round_output,
+        )
     return ensembles
 
 
