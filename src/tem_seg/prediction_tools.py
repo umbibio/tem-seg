@@ -22,7 +22,9 @@ def select_model_version(
     cross_validation_kfolds: int | None = None,
 ):
     if use_ensemble:
-        assert cross_validation_kfolds is not None
+        assert cross_validation_kfolds is not None, (
+            "Must specify total number of folds k when using ensemble model"
+        )
         k = cross_validation_kfolds
         model_kind = f"{k}-fold_cross_validation"
     else:
@@ -38,8 +40,8 @@ def select_model_version(
             download=True,
         )
 
-    assert model_dir.exists(), model_dir
-    assert model_dir.is_dir(), model_dir
+    assert model_dir.exists(), f"Model directory {model_dir} does not exist"
+    assert model_dir.is_dir(), f"Model directory {model_dir} is not a directory"
 
     CONFIG["model_root"] = model_dir
 
@@ -168,11 +170,11 @@ def load_image(img_filepath: str) -> Image.Image:
 
 
 def composition(img: Image.Image, layers: dict = {}) -> Image.Image:
-    assert img.mode == "L"
+    assert img.mode == "L", "Input image must be grayscale"
     img = np.array(img, dtype=int)
 
     for key, msk in layers.items():
-        assert msk.mode == "L"
+        assert msk.mode == "L", "Mask must be grayscale"
         layers[key] = np.array(msk, dtype=int)
 
     r, g, b = img.copy(), img.copy(), img.copy()
@@ -225,7 +227,7 @@ def image_prediction(
     """
     import tensorflow as tf
 
-    assert img.mode == "L"
+    assert img.mode == "L", "Input image must be grayscale"
 
     img_original_size = img.size
     img = fix_image_scale(img, trg_scale=trg_scale)
@@ -310,7 +312,7 @@ def threshold_prediction(img: Image.Image, threshold: float):
         Thresholded image.
     """
 
-    assert img.mode == "L"
+    assert img.mode == "L", "Input image must be grayscale"
 
     threshold *= 255
 
@@ -340,7 +342,7 @@ def remove_small_predictions(
     Image.Image
         Prediction image with small predictions removed.
     """
-    assert prd.mode == "L"
+    assert prd.mode == "L", "Input image must be grayscale"
     min_area_px2 = min_area_um2 / orig_scale**2
 
     arr = np.array(prd)
