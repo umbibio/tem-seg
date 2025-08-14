@@ -203,7 +203,12 @@ def composition(img: Image.Image, layers: dict = {}) -> Image.Image:
 
 
 def image_prediction(
-    img: Image.Image, model, trg_scale: float, batch_size=32, verbose=2
+    img: Image.Image,
+    model,
+    trg_scale: float,
+    img_scale: float | None = None,
+    batch_size=32,
+    verbose=2,
 ) -> Image.Image:
     """Predicts image using model.
 
@@ -214,7 +219,10 @@ def image_prediction(
     model : tf.keras.Model
         Model to use for prediction.
     trg_scale : float
-        Scale of the image in during prediction (units in um/px).
+        Scale of the image during prediction (units in um/px).
+    img_scale : float, optional
+        Calibrated scale of the input image in um/px. If ``None`` the scale is
+        obtained automatically, by default None.
     batch_size : int, optional
         Batch size to use for prediction, by default 32
     verbose : int, optional
@@ -230,7 +238,7 @@ def image_prediction(
     assert img.mode == "L", "Input image must be grayscale"
 
     img_original_size = img.size
-    img = fix_image_scale(img, trg_scale=trg_scale)
+    img = fix_image_scale(img, trg_scale=trg_scale, img_scale=img_scale)
     img_arr = np.array(img).astype(np.float32) / 255
 
     try:

@@ -21,6 +21,7 @@ def compute_prediction(
     checkpoint: Literal["last", "best_loss"] = "last",
     cross_validation_kfolds: int | None = None,
     round_output: bool = False,
+    pixel_size_nm: float | None = None,
 ) -> None:
     """
     Compute predictions for the given image files using the specified model.
@@ -36,6 +37,8 @@ def compute_prediction(
         checkpoint: Checkpoint to use
         cross_validation_kfolds: Number of cross-validation folds
         round_output: Whether to round the predictions
+        pixel_size_nm: Calibrated pixel size in nm/pixel. If provided, bypass automatic
+            calibration detection.
     """
     match model_architecture:
         case "unet":
@@ -58,6 +61,7 @@ def compute_prediction(
     )
 
     trg_scale = config[organelle]["target_scale"]
+    img_scale = pixel_size_nm / 1000 if pixel_size_nm is not None else None
 
     model_id = f"{model_architecture}_{model_name}"
     if use_ensemble:
@@ -88,7 +92,9 @@ def compute_prediction(
                 )
 
             try:
-                prd = prediction_tools.image_prediction(img, model, trg_scale=trg_scale)
+                prd = prediction_tools.image_prediction(
+                    img, model, trg_scale=trg_scale, img_scale=img_scale
+                )
                 prd.save(prd_filepath)
 
             except NoScaleError as e:

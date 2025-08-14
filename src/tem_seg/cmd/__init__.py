@@ -107,6 +107,14 @@ def predict_command(
         bool,
         Option("--round-output", "-r", help="Round output to nearest integer"),
     ] = False,
+    pixel_size_nm: Annotated[
+        float | None,
+        Option(
+            "--pixel-size-nm",
+            "-p",
+            help="Calibrated pixel size in nm/pixel to bypass automatic detection",
+        ),
+    ] = None,
 ) -> None:
     """Compute predictions for the given image files using the specified model."""
     from ._compute_prediction import compute_prediction
@@ -122,6 +130,7 @@ def predict_command(
         checkpoint=checkpoint,
         cross_validation_kfolds=cross_validation_kfolds,
         round_output=round_output,
+        pixel_size_nm=pixel_size_nm,
     )
 
 
