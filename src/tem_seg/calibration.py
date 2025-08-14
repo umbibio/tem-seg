@@ -93,14 +93,11 @@ def get_calibration(img):
     white_rw_fr = (img[-200:] == np.iinfo(img.dtype).max).all(axis=1).sum() / 200
 
     if black_rw_fr > 0.001 and black_rw_fr > white_rw_fr:
-        # print("try cal 01")
         return get_calibration_01(img)
 
     if white_rw_fr > 0.001 and white_rw_fr > black_rw_fr:
-        # print("try cal 02")
         return get_calibration_02(img)
 
-    # print("try cal 03")
     return get_calibration_03(img)
 
 
@@ -167,7 +164,6 @@ def get_calibration_03(img):
 def get_calibration_02(arr: NDArray):
     nrow, ncol = arr.shape
     band_height = np.argwhere(arr[::-1, ncol // 2] != 255)[0, 0]
-    print(f"{band_height=}")
     roi = arr[-band_height:, ncol // 2 :]
     yptr = np.argwhere(np.any(roi != 255, axis=1))[0, 0]
     value = 0
@@ -177,7 +173,6 @@ def get_calibration_02(arr: NDArray):
         count += 1
         yptr += 1
     scale_px = value / count
-    print(f"{scale_px=}")
 
     try:
         roi = roi[yptr:]
@@ -254,7 +249,6 @@ def read_scale_um(text_img):
             break
 
         text_img = text_img[:, r:]
-    print("Slide scale is:", nmbr_string, unit)
     if len(nmbr_string) == 0:
         raise NoScaleNumberError("Could not read the number in scale")
     nmbr = float(nmbr_string)
@@ -285,7 +279,6 @@ def _fix_image_scale(
 def fix_image_scale(img: Image.Image, trg_scale: float, img_scale: float = None):
     if img_scale is None:
         img_scale = get_calibration(img)
-        print(f"Detected image scale: {img_scale}")
 
     return _fix_image_scale(img, trg_scale, img_scale, Image.Resampling.LANCZOS)
 

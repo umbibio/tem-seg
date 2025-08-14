@@ -1,4 +1,3 @@
-import re
 from pathlib import Path
 from typing import Literal
 
@@ -7,6 +6,7 @@ from tem_seg.calibration import (
     NoScaleError,
     NoScaleNumberError,
     NoScaleUnitError,
+    get_calibration,
 )
 
 
@@ -61,7 +61,41 @@ def compute_prediction(
     )
 
     trg_scale = config[organelle]["target_scale"]
-    img_scale = pixel_size_nm / 1000 if pixel_size_nm is not None else None
+
+    img_scales: dict[str, float] = {}
+    if pixel_size_nm is not None:
+        for img_filepath in filepaths:
+            img_scales[img_filepath.name] = pixel_size_nm / 1000
+    else:
+        for img_filepath in filepaths:
+            assert img_filepath.exists(), f"Image file {img_filepath} does not exist"
+            img = prediction_tools.load_image(img_filepath.as_posix())
+            try:
+                img_scales[img_filepath.name] = get_calibration(img)
+                print(
+                    f"Image: {img_filepath.name}, Parsed Calibrated Pixel Size: {img_scales[img_filepath.name]} nm/pixel",
+                    flush=True,
+                )
+            except NoScaleError as e:
+                print(
+                    f"Warning: no scale could be read for image {img_filepath}",
+                    flush=True,
+                )
+                print(e, flush=True)
+            except NoScaleNumberError as e:
+                print(
+                    f"Warning: no scale number could be read for image {img_filepath}",
+                    flush=True,
+                )
+                print(e, flush=True)
+            except NoScaleUnitError as e:
+                print(
+                    f"Warning: no scale unit could be read for image {img_filepath}",
+                    flush=True,
+                )
+                print(e, flush=True)
+
+        filepaths = [p for p in filepaths if p.name in img_scales]
 
     model_id = f"{model_architecture}_{model_name}"
     if use_ensemble:
@@ -76,12 +110,18 @@ def compute_prediction(
 
         output_basedir = img_filepath.parent / predictions_basedir
 
-        prd_filepath = output_basedir / re.sub(
-            ".tif$", f"-{organelle}.png", img_filepath.name
-        )
+        prd_filepath = output_basedir / (img_filepath.stem + f"-{organelle}.png")
         print(img_filepath, flush=True)
 
         img = prediction_tools.load_image(img_filepath.as_posix())
+        img_scale = img_scales.get(img_filepath.name)
+
+        if img_scale is None:
+            print(
+                f"Warning: skipping image {img_filepath} due to missing calibration",
+                flush=True,
+            )
+            continue
 
         if not prd_filepath.exists() or force_prediction:
             prd_filepath.parent.mkdir(parents=True, exist_ok=True)
