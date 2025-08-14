@@ -283,5 +283,23 @@ def init_config() -> None:
     init_config()
 
 
+utils_app = typer.Typer(help="Utility commands")
+app.add_typer(utils_app, name="utils")
+
+
+@utils_app.command("init-pixel-sizes")
+def init_pixel_sizes_command(
+    filepaths: Annotated[List[Path], Argument(help="Paths to the image files")],
+    output: Annotated[
+        Path,
+        Option("--output", "-o", help="Path to save the TSV file"),
+    ] = Path("pixel_sizes.tsv"),
+) -> None:
+    """Initialize a TSV file with the calibrated pixel size of the images."""
+    from ._utils import init_pixel_sizes_tsv
+
+    init_pixel_sizes_tsv(filepaths=filepaths, output=output)
+
+
 if __name__ == "__main__":
     app()
