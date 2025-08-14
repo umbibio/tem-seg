@@ -115,6 +115,17 @@ def predict_command(
             help="Calibrated pixel size in nm/pixel to bypass automatic detection",
         ),
     ] = None,
+    pixel_sizes_filepath: Annotated[
+        Path | None,
+        Option(
+            "--pixel-sizes-filepath",
+            "-P",
+            help=(
+                "Path to CSV, TSV, or XLSX file with image filename and calibrated "
+                "pixel size (nm/pixel)"
+            ),
+        ),
+    ] = None,
 ) -> None:
     """Compute predictions for the given image files using the specified model."""
     from ._compute_prediction import compute_prediction
@@ -131,6 +142,7 @@ def predict_command(
         cross_validation_kfolds=cross_validation_kfolds,
         round_output=round_output,
         pixel_size_nm=pixel_size_nm,
+        pixel_sizes_filepath=pixel_sizes_filepath,
     )
 
 

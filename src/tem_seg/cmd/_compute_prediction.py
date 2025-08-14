@@ -8,6 +8,7 @@ from tem_seg.calibration import (
     NoScaleUnitError,
     get_calibration,
 )
+from tem_seg.utils._read_table_from_file import read_table_from_file
 
 
 def compute_prediction(
@@ -22,6 +23,7 @@ def compute_prediction(
     cross_validation_kfolds: int | None = None,
     round_output: bool = False,
     pixel_size_nm: float | None = None,
+    pixel_sizes_filepath: Path | None = None,
 ) -> None:
     """
     Compute predictions for the given image files using the specified model.
@@ -38,7 +40,10 @@ def compute_prediction(
         cross_validation_kfolds: Number of cross-validation folds
         round_output: Whether to round the predictions
         pixel_size_nm: Calibrated pixel size in nm/pixel. If provided, bypass automatic
-            calibration detection.
+            calibration detection for all images.
+        pixel_sizes_filepath: Optional path to a CSV, TSV or XLSX file containing
+            image filenames in the first column and calibrated pixel size in nm/pixel
+            in the second column.
     """
     match model_architecture:
         case "unet":
@@ -63,39 +68,51 @@ def compute_prediction(
     trg_scale = config[organelle]["target_scale"]
 
     img_scales: dict[str, float] = {}
-    if pixel_size_nm is not None:
-        for img_filepath in filepaths:
-            img_scales[img_filepath.name] = pixel_size_nm / 1000
-    else:
-        for img_filepath in filepaths:
-            assert img_filepath.exists(), f"Image file {img_filepath} does not exist"
-            img = prediction_tools.load_image(img_filepath.as_posix())
-            try:
-                img_scales[img_filepath.name] = get_calibration(img)
-                print(
-                    f"Image: {img_filepath.name}, Parsed Calibrated Pixel Size: {img_scales[img_filepath.name]} nm/pixel",
-                    flush=True,
-                )
-            except NoScaleError as e:
-                print(
-                    f"Warning: no scale could be read for image {img_filepath}",
-                    flush=True,
-                )
-                print(e, flush=True)
-            except NoScaleNumberError as e:
-                print(
-                    f"Warning: no scale number could be read for image {img_filepath}",
-                    flush=True,
-                )
-                print(e, flush=True)
-            except NoScaleUnitError as e:
-                print(
-                    f"Warning: no scale unit could be read for image {img_filepath}",
-                    flush=True,
-                )
-                print(e, flush=True)
 
-        filepaths = [p for p in filepaths if p.name in img_scales]
+    if pixel_sizes_filepath is not None:
+        table = read_table_from_file(pixel_sizes_filepath)
+        for _, row in table.iterrows():
+            try:
+                img_scales[str(row.iloc[0])] = float(row.iloc[1]) / 1000
+            except (ValueError, TypeError):
+                continue
+
+    for img_filepath in filepaths:
+        if img_filepath.name in img_scales:
+            continue
+
+        if pixel_size_nm is not None:
+            img_scales[img_filepath.name] = pixel_size_nm / 1000
+            continue
+
+        assert img_filepath.exists(), f"Image file {img_filepath} does not exist"
+        img = prediction_tools.load_image(img_filepath.as_posix())
+        try:
+            img_scales[img_filepath.name] = get_calibration(img)
+            print(
+                f"Image: {img_filepath.name}, Parsed Calibrated Pixel Size: {img_scales[img_filepath.name] * 1000} nm/pixel",
+                flush=True,
+            )
+        except NoScaleError as e:
+            print(
+                f"Warning: no scale could be read for image {img_filepath}",
+                flush=True,
+            )
+            print(e, flush=True)
+        except NoScaleNumberError as e:
+            print(
+                f"Warning: no scale number could be read for image {img_filepath}",
+                flush=True,
+            )
+            print(e, flush=True)
+        except NoScaleUnitError as e:
+            print(
+                f"Warning: no scale unit could be read for image {img_filepath}",
+                flush=True,
+            )
+            print(e, flush=True)
+
+    filepaths = [p for p in filepaths if p.name in img_scales]
 
     model_id = f"{model_architecture}_{model_name}"
     if use_ensemble:
