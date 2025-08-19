@@ -2,7 +2,7 @@
 
 ## Model Configuration
 
-Model and training parameters are configured in `src/tem_analysis_pipeline/model/config.py`. Key parameters include:
+Model and training parameters are configured in `src/tem_seg/config/_config.py` and `src/tem_seg/settings.toml`. Key parameters include:
 
 - `tile_shape`: Input image size for the model
 - `window_shape`: Output mask size for the model. Must match the output shape of the model given the `tile_shape` and `layer_depth` parameters. It is computed automatically in the code.

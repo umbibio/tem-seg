@@ -2,6 +2,37 @@
 debug = false
 tf_cpp_min_log_level = "2"
 
+[downloads]
+path = "./"
+
+[downloads.resources.slide_images]
+version = "1.0.0"
+mirrors = [
+    "https://zenodo.org/records/15602048/files/tem-seg-data_slide_images.tar.gz",
+]
+filename = "tem-seg-data_slide_images.tar.gz"
+sha256 = "d55c2d1b0095001247b533f50f554c7dfc0aa23bb63c752f5eb313b4283dad1e"
+md5 = "927da5de97ff9d7b60fd82b44424b064"
+
+[downloads.resources.mitochondria_masks]
+version = "1.0.0"
+mirrors = [
+    "https://zenodo.org/records/15602048/files/tem-seg-data_mitochondria_masks.tar.gz",
+]
+filename = "tem-seg-data_mitochondria_masks.tar.gz"
+sha256 = "0ebbaccf0c6535cd82b32baa6c71272517c4dd7ed89de27ba4ab46fb32391949"
+md5 = "a73545029fdf5c60f53296530812aefd"
+
+[downloads.resources.model_weights]
+version = "1.0.0"
+mirrors = [
+    "https://zenodo.org/records/15602446/files/tem-seg-models_v1.0.0.tar.gz",
+]
+filename = "tem-seg-models_v1.0.0.tar.gz"
+sha256 = "525635b333bbbcac3e355bc306f39f7f270ac8398c7f69a114085b385199cb92"
+md5 = "454cd082fa1d0dbac129d717f6a90341"
+
+
 [assets]
 path = "~/.tem-seg/assets"
 

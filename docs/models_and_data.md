@@ -6,7 +6,7 @@ The pre-trained models are hosted on [Zenodo](https://zenodo.org/records/1560244
 
 ```bash
 # Navigate to the repository root
-cd tem-seg-reproducibility
+cd tem-seg
 
 # Run the download script
 bash scripts/download_models.sh
@@ -21,7 +21,7 @@ The TEM image dataset and masks are hosted on [Zenodo](https://zenodo.org/record
 
 ```bash
 # Navigate to the repository root
-cd tem-seg-reproducibility
+cd tem-seg
 
 # Run the download script
 bash scripts/download_images.sh
@@ -37,7 +37,7 @@ Before training, you need to convert the images and masks into TFRecord format:
 
 ```bash
 # Navigate to the repository root
-cd tem-seg-reproducibility
+cd tem-seg
 
 # Run the TFRecord creation script
 bash scripts/make_tfrecords.sh

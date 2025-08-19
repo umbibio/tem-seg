@@ -2,6 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from ._assets_config import AssetsConfig
 from ._config import CONFIG_FILES
+from ._downloads_config import DownloadsConfig
 from ._environment_config import EnvironmentConfig
 from ._utils import load_config_files
 
@@ -14,6 +15,7 @@ __all__ = [
 class Settings(BaseSettings):
     """Main application settings."""
 
+    downloads: DownloadsConfig
     assets: AssetsConfig
     environment: EnvironmentConfig
 

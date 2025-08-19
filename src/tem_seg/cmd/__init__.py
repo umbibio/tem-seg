@@ -1,10 +1,13 @@
 """Command-line interface for TEM analysis pipeline."""
 
+from enum import Enum
 from pathlib import Path
 from typing import Annotated, List
 
 import typer
 from typer import Argument, Option
+
+from ..config import settings
 
 # Create the main app
 app = typer.Typer(
@@ -299,6 +302,42 @@ def init_pixel_sizes_command(
     from ._utils import init_pixel_sizes_tsv
 
     init_pixel_sizes_tsv(filepaths=filepaths, output=output)
+
+
+AvailableResources = Enum(
+    "resources",
+    list([(k, k) for k in settings.downloads.resources.keys()]),
+)
+
+
+@app.command("download")
+def download_command(
+    resource: Annotated[
+        AvailableResources,
+        Argument(help="Name of the resource to download"),
+    ],
+    output_dirpath: Annotated[
+        Path | None,
+        Option("--output-dirpath", "-o", help="Path to save the slide images"),
+    ] = None,
+) -> None:
+    from ..utils import download_and_extract
+
+    if output_dirpath is None:
+        output_dirpath = Path(settings.downloads.path).expanduser()
+    else:
+        output_dirpath = Path(output_dirpath)
+    output_dirpath.mkdir(parents=True, exist_ok=True)
+
+    cfg = settings.downloads.resources.get(resource.value)
+    download_and_extract(
+        urls=cfg.mirrors,
+        archive_filename=output_dirpath / cfg.filename,
+        extract_to=output_dirpath,
+        expected_hash=cfg.sha256,
+        expected_hash_algorithm="sha256",
+        cleanup_archive=False,
+    )
 
 
 if __name__ == "__main__":

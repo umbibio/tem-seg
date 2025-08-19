@@ -35,7 +35,12 @@ def extract_archive(archive_path: Path, extract_to: Path) -> bool:
                         continue
 
                     # Skip special files
-                    if not (member.isfile() or member.isdir()):
+                    if not (
+                        member.isfile()
+                        or member.isdir()
+                        or member.islnk()
+                        or member.issym()
+                    ):
                         console.print(
                             f"⚠️  Skipping special file: {member.name}", style="yellow"
                         )
@@ -44,7 +49,9 @@ def extract_archive(archive_path: Path, extract_to: Path) -> bool:
                     tar.extract(member, extract_to)
                     progress.update(task, advance=1)
 
-        console.print(f"✅ Successfully extracted to {extract_to}", style="green")
+        console.print(
+            f"✅ Successfully extracted to {extract_to.absolute()}", style="green"
+        )
         return True
 
     except Exception as e:

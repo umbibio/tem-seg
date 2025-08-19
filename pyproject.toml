@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Argenis Arriojas", email = "arriojasmaldonado001@umb.edu" },
 ]
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.10,<3.13"
 dependencies = [
     "ipykernel>=6.29.5",
     "matplotlib>=3.10.1",
