@@ -36,5 +36,8 @@ studies
 *.tar.gz
 *.zip
 
+# docs exception
+!*.md
+
 # assets exception
 !assets/tem-seg-*.tar.gz

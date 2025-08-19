@@ -1,35 +1,31 @@
 # Data and Models
 
-## Pre-trained Models Download
+## Pre-trained Models and Training Data
 
-The pre-trained models are hosted on [Zenodo](https://zenodo.org/records/15602446). We provide a convenience script to download and extract:
+The CLI can automatically download assets as needed (e.g., model weights at prediction time). If you plan to train or fine‑tune models, you can fetch datasets and pre‑trained weights from Zenodo using our convenience command.
 
+Resources available:
+- Slide images
+- Mitochondria semantic segmentation masks
+- Pre-trained model weights
+
+Example usage:
 ```bash
-# Navigate to the repository root
-cd tem-seg
-
-# Run the download script
-bash scripts/download_models.sh
+tem-seg download --help
+tem-seg download model_weights
 ```
+Use the help output to see all available resources and their identifiers.
 
-This script will download and extract the following files:
-- `tem-seg-models_v1.0.0.tar.gz`: Contains all pre-trained models
+When downloading model weights, this will retrieve and extract the archive containing all pre-trained models:
+- `tem-seg-models_v#.#.#.tar.gz`
 
-## Training Data Download
+## Models Included
 
-The TEM image dataset and masks are hosted on [Zenodo](https://zenodo.org/records/15602048). We provide a convenience script to download and extract:
-
-```bash
-# Navigate to the repository root
-cd tem-seg
-
-# Run the download script
-bash scripts/download_images.sh
-```
-
-This script will download and extract the following files:
-- `tem-seg-data_slide_images.tar.gz`: Contains all TEM images
-- `tem-seg-data_mitochondria_masks.tar.gz`: Contains all mitochondria masks
+Pre-trained models included for mitochondria segmentation:
+- DRP1-KO
+- HCI-010
+- Mixture
+- PIM001-P
 
 ## Preparing TFRecords
 
@@ -49,6 +45,18 @@ This script will process the following datasets:
 - PIM001-P
 
 For each dataset, it creates TFRecords for both training/validation and test sets (except for the Mixture dataset which doesn't have a test set).
+
+On Windows, you can use the provided Command Prompt or PowerShell variants:
+
+```
+:: Windows (Command Prompt)
+scripts\make_tfrecords.bat
+```
+
+```powershell
+# Windows (PowerShell)
+pwsh -File scripts/make_tfrecords.ps1
+```
 
 ## Dataset Citation
 

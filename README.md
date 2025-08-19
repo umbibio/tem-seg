@@ -7,7 +7,7 @@ This repository contains a pipeline for the analysis of mitochondria morphology 
 ## Documentation
 
 - [Installation Guide](docs/installation.md)
-- [Data and Models](docs/data.md)
+- [Data and Models](docs/models_and_data.md)
 - [Custom Dataset](docs/custom_dataset.md)
 - [Usage Guide](docs/usage.md)
 - [Configuration](docs/configuration.md)
