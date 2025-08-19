@@ -9,7 +9,7 @@ from PIL import Image
 from .. import calibration, prediction_tools
 from ..analysis import _analysis as analysis
 from ..calibration import NoScaleError, NoScaleNumberError, NoScaleUnitError
-from ..model.config import config
+from ..model.unet import unet_config as config
 
 
 def compute_analysis(
