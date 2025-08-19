@@ -1,6 +1,6 @@
 [project]
 name = "tem-seg"
-version = "0.3.1.dev0"
+version = "0.3.1.dev1"
 description = "Codebase for the analysis of mitochondria morphology using semantic segmentation on TEM images."
 readme = "README.md"
 authors = [
