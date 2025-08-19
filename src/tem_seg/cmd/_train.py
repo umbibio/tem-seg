@@ -298,6 +298,7 @@ def train(
         )
 
     total_epochs = n_epochs_per_run * (initial_epoch // n_epochs_per_run + 1)
+    print(f"Training from epoch {initial_epoch} to a total of {total_epochs} epochs")
 
     history = model.fit(
         training_dataset,
