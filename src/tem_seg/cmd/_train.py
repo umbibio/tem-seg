@@ -225,11 +225,13 @@ def train(
 
     if total_folds > 1:
         working_dir = Path(
-            f"{models_folder}/{model_architecture}/{total_folds}-fold_cross_validation"
+            f"{models_folder}/{model_architecture}/{dataset_name}/{total_folds}-fold_cross_validation"
         )
     else:
-        working_dir = Path(f"{models_folder}/{model_architecture}/single_fold")
-    working_dir = working_dir / dataset_name / organelle / f"kf{fold_n:02d}"
+        working_dir = Path(
+            f"{models_folder}/{model_architecture}/{dataset_name}/single_fold"
+        )
+    working_dir = working_dir / organelle / f"kf{fold_n:02d}"
     print(f"Working directory: {working_dir}")
     working_dir.mkdir(parents=True, exist_ok=True)
 
@@ -327,15 +329,24 @@ def train(
     )
     final_epoch = initial_epoch + len(history.history["loss"])
 
-    test_dataset = get_dataset(
-        dataset_name,
-        "tst",
-        organelle,
-        tile_shape,
-        window_shape,
-        batch_size=8,
-        data_dirpath=data_dirpath,
-    )
+    try:
+        test_dataset = get_dataset(
+            dataset_name,
+            "tst",
+            organelle,
+            tile_shape,
+            window_shape,
+            batch_size=8,
+            data_dirpath=data_dirpath,
+        )
+    except FileNotFoundError:
+        print("Test dataset not found. Skipping evaluation.")
+        return
+    except tf.errors.InvalidArgumentError:
+        print("Test dataset is empty. Skipping evaluation.")
+        return
+
+    # evaluating the model
     thresholds = np.arange(0, 1, 0.005).tolist()
     metrics = [
         keras.metrics.TruePositives(thresholds=thresholds),
