@@ -46,49 +46,49 @@ The output files will have the following structure:
 
 For single-fold training:
 ```
-models/
-└── single_fold/dataset_name/
-    └── mitochondria
-        └── kf01
-            ├── ckpt
+models/unet/dataset_name/
+└── single_fold/
+    └── mitochondria/
+        └── kf01/
+            ├── ckpt/
             │   └── last.keras
-            ├── evaluation
+            ├── evaluation/
             │   ├── nnnnn_evaluation.json
             │   └── ...
-            └── logs
+            └── logs/
                 ├── metrics.tsv
-                └── train
+                └── train/
                     ├── events.out.tfevents.*.v2
 ```
 
 For k-fold cross-validation:
 ```
-models/
-└── 5-fold_cross_validation/dataset_name/
-    └── mitochondria
-        ├── kf01
-        │   ├── ckpt
-        │   │   ├── best_loss
+models/unet/dataset_name/
+└── 5-fold_cross_validation/
+    └── mitochondria/
+        ├── kf01/
+        │   ├── ckpt/
+        │   │   ├── best_loss/
         │   │   │   └── best_logs.json
         │   │   ├── best_loss.keras
         │   │   └── last.keras
-        │   ├── evaluation
+        │   ├── evaluation/
         │   │   ├── nnnnn_evaluation.json
         │   │   └── ...
-        │   └── logs
+        │   └── logs/
         │       ├── metrics.tsv
-        │       ├── train
+        │       ├── train/
         │       │   └── events.out.tfevents.*.v2
-        │       └── validation
+        │       └── validation/
         │           └── events.out.tfevents.*.v2
-        ├── kf02
-        │   ├── ckpt
-        │   │   ├── best_loss
+        ├── kf02/
+        │   ├── ckpt/
+        │   │   ├── best_loss/
         │   │   │   └── best_logs.json
         │   │   ├── best_loss.keras
         │   │   └── last.keras
         │   └── ...
-        └── kf03
+        └── kf03/
             └── ...
 ```
 
@@ -99,12 +99,28 @@ To generate predictions using a trained model:
 ```bash
 tem-seg predict \
     /path/to/images/*.tif \
-    --model-version Mixture \
+    --model-architecture unet \
+    --model-name Mixture \
     --organelle mitochondria \
     --use-ensemble \
     --cross-validation-kfolds 5 \
     --checkpoint last
 ```
+
+#### Parameters
+
+- `filepaths` (positional): Paths or glob(s) to input images.
+- `--model-architecture, -a` (str, default: `unet`): Architecture to use.
+- `--model-name, -n` (str, default: `Mixture`): Model/version name.
+- `--organelle, -o` (str, default: `mitochondria`): Target organelle.
+- `--force-prediction, -f` (flag, default: false): Overwrite if outputs exist.
+- `--models-folder, -m` (path, optional): Directory containing models to use.
+- `--use-ensemble, -e` (flag, default: false): Use ensemble model.
+- `--checkpoint, -c` (str, default: `last`): Checkpoint to load.
+- `--cross-validation-kfolds, -k` (int, optional): Number of k-folds to aggregate.
+- `--round-output, -r` (flag, default: false): Round predictions to nearest integer.
+- `--pixel-size-nm, -p` (float, optional): Calibrated pixel size (nm/pixel) to bypass automatic detection.
+- `--pixel-sizes-filepath, -P` (path, optional): CSV/TSV/XLSX with `filename` and pixel size (nm/pixel).
 
 The output structure will be:
 

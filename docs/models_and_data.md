@@ -27,6 +27,32 @@ Pre-trained models included for mitochondria segmentation:
 - Mixture
 - PIM001-P
 
+### Model directory layout
+
+Downloaded pre-trained weights are organized per dataset and fold, with checkpoints and logs. A simplified view:
+
+```
+models/
+└── unet/
+    ├── DRP1-KO/
+    ├── HCI-010/
+    ├── Mixture/
+    └── PIM001-P/
+        └── 5-fold_cross_validation/
+            └── mitochondria/
+                └── kf01..kf05/
+                    ├── ckpt/
+                    │   ├── best_loss/
+                    │   │   └── best_logs.json
+                    │   ├── best_loss.keras
+                    │   └── last.keras
+                    ├── evaluation/ (optional)
+                    └── logs/
+                        ├── metrics.tsv
+                        ├── train/
+                        └── validation/
+```
+
 ## Preparing TFRecords
 
 Before training, you need to convert the images and masks into TFRecord format:
@@ -63,3 +89,7 @@ pwsh -File scripts/make_tfrecords.ps1
 Arriojas Maldonado, A. A., Baek, M., Berner, M. J., Zhurkevich, A., Hinton, Jr., A., Meyer, M., Dobrolecki, L., Lewis, M. T., Zarringhalam, K., & Echeverria, G. (2025). TEM Mitochondria Segmentation Dataset for Triple Negative Breast Cancer Chemotherapy Analysis (1.0.0) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.15602048
 
 Arriojas Maldonado, A. A., Baek, M., Berner, M. J., Zhurkevich, A., Hinton, Jr., A., Meyer, M., Dobrolecki, L., Lewis, M. T., Zarringhalam, K., & Echeverria, G. (2025). U-Net Model Weights for TEM Mitochondria Segmentation in Triple Negative Breast Cancer (1.0.0). Zenodo. https://doi.org/10.5281/zenodo.15602446
+
+---
+
+For end-to-end examples on prediction and morphology analysis, see the [Usage Guide](usage.md).
